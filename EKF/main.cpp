@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/timerfd.h>
+#include <unistd.h>
 #include "EKalmanGND.h"
 #include "insfilterNonholonomic.h"
 #include "quaternion.h"
@@ -48,11 +50,35 @@ int main(int, char **)
         printf("Cannot open output.txt");
     }
 
+    int fd;
+    struct itimerspec its;
+    uint32_t exp, tot_exp;
+
+    // Create the timer
+    fd = timerfd_create(CLOCK_MONOTONIC, 0);
+    if (fd == -1) {
+        perror("timerfd_create");
+        return 1;
+    }
+
+    // Set the timer to expire after 1 second
+    its.it_value.tv_sec = 1;
+    its.it_value.tv_nsec = 0;
+    its.it_interval.tv_sec = 1;
+    its.it_interval.tv_nsec = 0;
+
+    // Start the timer
+    if (timerfd_settime(fd, 0, &its, NULL) == -1) {
+        perror("timerfd_settime");
+        return 1;
+    }
+
     int i=0, j=0;
     double d;
     double accel[3], gyro[3], lla[3], gpsvel[3], pos[3];
     while(i<numsamples){
         for(j=0;j<imuFs/gpsFs;j++){
+            read(fd, &exp, sizeof(uint64_t));
             fscanf(fpa, "%lf", &d);
             accel[0]=d;
             fscanf(fpa, "%lf", &d);

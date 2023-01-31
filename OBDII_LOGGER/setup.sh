@@ -1,0 +1,1 @@
+mkdir /tmp/CAN_LOG
