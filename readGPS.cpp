@@ -11,13 +11,17 @@ pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 void *writeToFile(void *arg)
 {
     int fd;
-    char *data = (char *)arg;
+    float *data = (float *)arg;
+    int dataLength = *(int *) (arg + sizeof(float) * 100);
     char filename[] = "gps_data.txt";
-    int frequency = *(int *) (arg + strlen(arg) + 1);
 
     while (1)
     {
+        // Lock the mutex
         pthread_mutex_lock(&lock);
+
+        // Wait for a signal from the main thread
+        pthread_cond_wait(&cond, &lock);
 
         fd = open(filename, O_CREAT | O_WRONLY | O_APPEND, 0644);
         if (fd == -1)
@@ -26,20 +30,21 @@ void *writeToFile(void *arg)
         }
         else
         {
-            pthread_cond_wait(&cond, &lock);
-            write(fd, data, strlen(data));
+            for (int i = 0; i < dataLength; i++)
+            {
+                char buffer[32];
+                sprintf(buffer, "%.2f\n", data[i]);
+                write(fd, buffer, strlen(buffer));
+            }
         }
         close(fd);
+
+        // Unlock the mutex
         pthread_mutex_unlock(&lock);
-        
-
-
-
     }
 
     pthread_exit(NULL);
 }
-
 
 int main() {
     int fd;
