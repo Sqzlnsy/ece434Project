@@ -3,6 +3,43 @@
 #include <sys/timerfd.h>
 #include <unistd.h>
 #include <gps.h>
+#include <pthread.h>
+
+pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+void *writeToFile(void *arg)
+{
+    int fd;
+    char *data = (char *)arg;
+    char filename[] = "gps_data.txt";
+    int frequency = *(int *) (arg + strlen(arg) + 1);
+
+    while (1)
+    {
+        pthread_mutex_lock(&lock);
+
+        fd = open(filename, O_CREAT | O_WRONLY | O_APPEND, 0644);
+        if (fd == -1)
+        {
+            perror("Error opening file");
+        }
+        else
+        {
+            pthread_cond_wait(&cond, &lock);
+            write(fd, data, strlen(data));
+        }
+        close(fd);
+        pthread_mutex_unlock(&lock);
+        
+
+
+
+    }
+
+    pthread_exit(NULL);
+}
+
 
 int main() {
     int fd;
