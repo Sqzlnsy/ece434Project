@@ -21,8 +21,8 @@ def jscript(script):
     file='scripts/'+ script
     return render_template(file,**templateData)
 
-@app.route("/data", methods=['GET'])
-def getData():
+@app.route("/data/<type>=<num>", methods=['GET'])
+def getData(type, num):
     templateData = {
             'title' : 'LED Matrix',
         }
@@ -33,9 +33,9 @@ def getData():
     accel=line.split('\t')
     accelx=float(accel[0])
     print(accelx)
-    data = {'accelx': accelx, 'ts': ind}
+    data = {'param': [accelx], 'ts': [ind]}
     ind=ind+len(line)
     return jsonify(data)
 
 if __name__ == "__main__":
-   app.run(host='172.19.98.231', port=8081)
+   app.run(host='0.0.0.0', port=8081)
