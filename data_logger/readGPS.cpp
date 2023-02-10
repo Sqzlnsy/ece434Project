@@ -107,7 +107,7 @@ void *write_gyro(void* ignore){
 
             double time = tv.tv_usec;
 
-            fprintf(fo, "time:%lf|accX:%lf|accY:%lf|accZ:%lf|angleX:%lf|angleY:%lf|angleZ:%lf\n"
+            fprintf(fo, "%lf|%lf|%lf|%lf|%lf|%lf|%lf"
                         ,time, data_imu[0],data_imu[1],data_imu[2],data_imu[3],data_imu[4],data_imu[5]);
 
             fclose(fo);
@@ -174,11 +174,9 @@ void* write_gps_file(void* ignor) {
 
 
 
-            fprintf(fo, "time: %lf:lat%lf|long%lf|alt%lf|NS%lf|WE%lf|climb%lf~\naccX:%lf|accY:%lf|accZ:%lf"
-                        ,time, latitude, longitude, altitude,nb_speed,dx_speed,climb,data_imu[0],data_imu[1],data_imu[2]);
-            // printf("%lf %lf %lf\n", gps_d.fix.latitude, gps_d.fix.longitude, gps_d.fix.altitude);
-            // long int error_time = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
-            // printf("Elapsed time: %li us\n", error_time);
+            fprintf(fo, "%lf|%lf|%lf|%lf|%lf|%lf|%lf"
+                        ,data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5],data_gps[6] ,data_gps[7]);
+
             fclose(fo);
 
 
