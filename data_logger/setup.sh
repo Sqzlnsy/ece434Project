@@ -1,3 +1,2 @@
-g++ readGPS.cpp -o readGPS -lgps -pthread
-make
+g++ readGPS.cpp -o readGPS -lgps
 ./readGPS
