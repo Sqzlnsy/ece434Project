@@ -97,8 +97,13 @@ void gyro_read(double accel_scale,double angle_scale){
         fclose(fileAY);
         fclose(fileAZ);
 }
+<<<<<<< HEAD
 
 void *write_gyro(struct timeval timer){
+=======
+void *write_gyro(void* ignore){
+        FILE *fo = fopen("gyroL.log", "a+");
+>>>>>>> 9d36915c9b22567240f2dafa6059fbfd2b1e750d
     // Create the timer
         int i =0;
     // Set the gpsd daemon to streaming mode
@@ -110,6 +115,7 @@ void *write_gyro(struct timeval timer){
         if (f_gyro == NULL) {
             perror("Cannot open output.txt");
         }
+<<<<<<< HEAD
             gettimeofday(&timer, NULL);
             double sec = timer.tv_sec;
             int usec = timer.tv_usec;
@@ -117,6 +123,15 @@ void *write_gyro(struct timeval timer){
             double time = sec + us;
             // printf("%d\n",timer.tv_usec);
             fprintf(f_gyro, "%lf %lf %lf %lf %lf %lf %lf\n"
+=======
+        
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+
+            double time = tv.tv_usec;
+
+            fprintf(fo, "%lf|%lf|%lf|%lf|%lf|%lf|%lf\n"
+>>>>>>> 9d36915c9b22567240f2dafa6059fbfd2b1e750d
                         ,time, data_imu[0],data_imu[1],data_imu[2],data_imu[3],data_imu[4],data_imu[5]);
 
 
@@ -125,6 +140,7 @@ void *write_gyro(struct timeval timer){
 }
 
 void* clear_file(void* ignore){
+<<<<<<< HEAD
     FILE *fk = fopen("gpsL.log", "w");
     FILE *fg = fopen("gyroL.log", "w");
     fprintf(fk, "");
@@ -132,13 +148,25 @@ void* clear_file(void* ignore){
     fclose(fk);
     fclose(fg);
     return 0;
+=======
+    FILE *fo = fopen("gpsL.log", "w");
+    FILE *fg = fopen("gyroL.log", "w");
+    fprintf(fo, "");
+    fprintf(fg, "");
+    fclose(fo);
+    fclose(fg);
+>>>>>>> 9d36915c9b22567240f2dafa6059fbfd2b1e750d
 }
 
 void* write_gps_file(struct timeval timer) {
     // Create the timer
     int i =0;
     // Set the gpsd daemon to streaming mode
+<<<<<<< HEAD
     FILE *f_gps = fopen("gpsL.log", "a+");
+=======
+    FILE *fo = fopen("gpsL.log", "a+");
+>>>>>>> 9d36915c9b22567240f2dafa6059fbfd2b1e750d
 
     int fde = fileno(f_gps);
         fcntl(fde, F_SETLKW, &lock);
@@ -196,7 +224,15 @@ void* write_gps_file(struct timeval timer) {
             fprintf(f_gps, "%lf %lf %lf %lf %lf %lf %lf\n"
                         ,time,data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5]);
 
+<<<<<<< HEAD
             fclose(f_gps);
+=======
+
+            fprintf(fo, "%lf|%lf|%lf|%lf|%lf|%lf|%lf\n"
+                        ,data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5],data_gps[6] ,data_gps[7]);
+
+            fclose(fo);
+>>>>>>> 9d36915c9b22567240f2dafa6059fbfd2b1e750d
 
 
 
@@ -220,6 +256,10 @@ int main(){
     }
     gps_stream(&gps_d, WATCH_ENABLE | WATCH_JSON, NULL);
     printf("start sleep...\n");
+<<<<<<< HEAD
+=======
+    sleep(1);
+>>>>>>> 9d36915c9b22567240f2dafa6059fbfd2b1e750d
 
     FILE *scale_Accel = fopen("/sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/in_accel_scale","r");
     FILE *scale_Angle = fopen("/sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/in_anglvel_scale","r");
@@ -230,6 +270,7 @@ int main(){
     int count = 0;
     clear_file(0);
     struct timeval tv;
+<<<<<<< HEAD
     double start_time,now_time;
     int delay_time;
     int sleep_time=0;
@@ -248,6 +289,35 @@ int main(){
             count = 0;
         }
         gyro_read(accel_scale,angle_scale);
+=======
+    int start_time,now_time,delay_time;
+    int sleep_time=0;
+
+    while(1){
+        gettimeofday(&tv, NULL);
+
+        start_time = tv.tv_usec;
+
+        count += 1;
+        if (count % FREQUENCY/FREQUENCY_GYRO==0){
+            write_gps_file(0);
+        }
+        gyro_read(accel_scale,angle_scale);
+        write_gyro(0);
+
+        gettimeofday(&tv, NULL);
+
+        now_time = tv.tv_usec;
+
+        delay_time = now_time - start_time;
+        sleep_time = (1000000)/FREQUENCY-delay_time;
+
+
+
+        usleep(sleep_time);
+
+        // read_file(0);
+>>>>>>> 9d36915c9b22567240f2dafa6059fbfd2b1e750d
 
         write_gyro(overall);
         //  if(counter==100){
