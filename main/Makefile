@@ -6,7 +6,7 @@ CFLAGS=-pthread
 EKFDIR=../EKF
 GPSDIR=.
 INCDIRS=$(EKFDIR)
-SRCS=$(EKFDIR)/cosd.cpp $(EKFDIR)/EKalmanGND.cpp $(EKFDIR)/insfilterNonholonomic.cpp $(EKFDIR)/quaternion.cpp $(EKFDIR)/sind.cpp $(EKFDIR)/vectorBuffer.c $(EKFDIR)/rt_nonfinite.cpp $(EKFDIR)/rtGetNaN.cpp $(EKFDIR)/rtGetInf.cpp $(EKFDIR)/test_rtwutil.cpp $(GPSDIR)/readGPS.cpp
+SRCS=$(EKFDIR)/cosd.cpp $(EKFDIR)/EKalmanGND.cpp $(EKFDIR)/insfilterNonholonomic.cpp $(EKFDIR)/quaternion.cpp $(EKFDIR)/sind.cpp $(EKFDIR)/vectorBuffer.c $(EKFDIR)/rt_nonfinite.cpp $(EKFDIR)/rtGetNaN.cpp $(EKFDIR)/rtGetInf.cpp $(EKFDIR)/test_rtwutil.cpp $(GPSDIR)/data_log.cpp
 
 # Libraries
 LIBS=-lgps
