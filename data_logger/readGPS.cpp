@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <cmath>
 #include <math.h>
+
 #define FREQUENCY 10
 #define FREQUENCY_GYRO 160
 #define ERROR_ALIGN 3
@@ -23,7 +24,6 @@ struct gps_data_t gps_d;
 char buffer[1024];
 size_t buffer_size = sizeof(buffer);
 int counter = 0,a,b;
-
 
 void* read_file(void* ignore){
     char firstLine[1024];
@@ -49,12 +49,6 @@ void* read_file(void* ignore){
         }
     return 0;
 }
-
-
-
-
-
-
 
 void gyro_read(double accel_scale,double angle_scale){
         int in_accel_z_raw,in_accel_y_raw,in_accel_x_raw;
@@ -97,6 +91,7 @@ void gyro_read(double accel_scale,double angle_scale){
         fclose(fileAY);
         fclose(fileAZ);
 }
+
 void *write_gyro(void* ignore){
         FILE *fo = fopen("gyroL.log", "a+");
     // Create the timer

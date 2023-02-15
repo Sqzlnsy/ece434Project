@@ -2,6 +2,13 @@
 # Jason Su @ 01/07/2023
 from flask import Flask, request, render_template, jsonify
 import time
+ACCEL_X = 1
+ACCEL_Y = 2
+ACCEL_Z = 3
+ACCEL_VELX = 4
+ACCEL_VELY = 5
+ACCEL_VELZ = 6
+
 
 app = Flask(__name__)
 ind=0
@@ -20,22 +27,36 @@ def jscript(script):
         }
     file='scripts/'+ script
     return render_template(file,**templateData)
+k = 10
+
+@app.route("/time", methods=['GET'])
+def getTime():
+    data = {'time': 1676076002}
+    #data = {'time': int(time.time())}
+    return jsonify(data)
 
 @app.route("/data/<type>=<num>", methods=['GET'])
 def getData(type, num):
+    global k
     templateData = {
             'title' : 'LED Matrix',
         }
-    global ind
-    f = open('../GPS_IMU_Fusion/accel.txt', 'r')
-    f.seek(ind)
-    line=f.readline()
-    accel=line.split('\t')
-    accelx=float(accel[0])
-    print(accelx)
-    data = {'param': [accelx], 'ts': [ind]}
-    ind=ind+len(line)
-    return jsonify(data)
+    num = int(num)
+    f = open('/home/suq/ece434Server/b', 'r')
+    #f = open('../GPS_IMU_Fusion/accel.txt', 'r')
+    time_Stamp = []
+    data = []
+    #lines = f.readlines()[-int(k):-int(k-num)]
+    lines = f.readlines()[-int(num):]
+    f.close()
+    k+=num
+    for line in lines:
+        temp = line.split(' ')
+        time_Stamp.append(temp[0])
+        data.append(temp[ACCEL_X])
+    #print(data)
+    d = {'param': data, 'ts': time_Stamp}
+    return jsonify(d)
 
 if __name__ == "__main__":
    app.run(host='0.0.0.0', port=8081)

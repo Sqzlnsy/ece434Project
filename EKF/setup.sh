@@ -1,5 +1,1 @@
-config-pin P9_21 uart
-config-pin P9_22 uart
-config-pin P9_17 i2c
-config-pin P9_18 i2c
-sudo service gpsd start
+g++ -o fusionT cosd.cpp EKalmanGND.cpp insfilterNonholonomic.cpp main.cpp quaternion.cpp sind.cpp vectorBuffer.c rt_nonfinite.cpp rtGetNaN.cpp rtGetInf.cpp test_rtwutil.cpp
