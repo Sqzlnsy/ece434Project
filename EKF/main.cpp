@@ -6,10 +6,29 @@
 #include "insfilterNonholonomic.h"
 #include "quaternion.h"
 #include "rt_nonfinite.h"
+#include "vectorBuffer.h"
+
+#define IMU_BUFFER_SIZE 160
+#define GPS_BUFFER_SIZE 10
+#define FREQUENCY_GYRO 160
+#define STATE_BUFFER_SIZE 200
+#define FREQUENCY 10
+#define TEST
+
+
+Queue *accel = createQueue(IMU_BUFFER_SIZE);
+Queue *gyro = createQueue(IMU_BUFFER_SIZE);
+Queue *gpsPos = createQueue(GPS_BUFFER_SIZE);
+Queue *gpsVel = createQueue(GPS_BUFFER_SIZE);
+Queue *position = createQueue(STATE_BUFFER_SIZE);
+uint EKF_counter = 0;
+bool thread_ctl = 0;
 
 //  Acquire the current estimate of the filter states
-void getPos(EKalmanGND obj, double *p);
+void getPos(EKalmanGND obj, vector_t *p);
 void getOri(EKalmanGND obj, coder::quaternion *f);
+void getVel(EKalmanGND obj, vector_t *v);
+
 const double b_initstate[16]={
      0.707102158190293,0,0,0.707111404152578,
     0,0,0,15.3984387870298,0.0420983831777497,0,
@@ -17,18 +36,19 @@ const double b_initstate[16]={
 const double Rnoise[2]={1, 0.01};
 const double Qnoise[4]={0.00400000000000000, 4.00000000000000E-10,	2,	0.000200000000000000};
 const double zVCst=0.1;
-const double localOrigin[3]={42.2825000000000,	-71.3430000000000,	53.0352000000000};
+int skip = 5;
+int count = 1000;
 
 int main(int, char **)
 {
     EKalmanGND obj;
     coder::insfilterNonholonomic lobj_0;
     double imuFs=160, gpsFs=10;
-    obj.init(b_initstate, imuFs, Rnoise, Qnoise, zVCst, localOrigin, &lobj_0);
-    // Loop setup
-    int secondsToSimulate = 50; // simulate about 50 seconds
-    int numsamples = (int) secondsToSimulate*imuFs;
-
+    double localOrigin[3];
+    vector_t v = rear(gpsPos);
+    int fileIndicator = 0;
+    #ifdef TEST
+    int i=0, j=0;
     FILE *fpa = fopen("accel.txt", "r");
     if (fpa == NULL) {
         printf("Cannot open accel.txt");
@@ -45,82 +65,151 @@ int main(int, char **)
     if (fpv == NULL) {
         printf("Cannot open gpsvel.txt");
     }
-     FILE *fo = fopen("output.txt", "w");
-    if (fo == NULL) {
-        printf("Cannot open output.txt");
-    }
-
-    int fd;
-    struct itimerspec its;
-    uint32_t exp, tot_exp;
-
-    // Create the timer
-    fd = timerfd_create(CLOCK_MONOTONIC, 0);
-    if (fd == -1) {
-        perror("timerfd_create");
-        return 1;
-    }
-
-    // Set the timer to expire after 1 second
-    its.it_value.tv_sec = 1;
-    its.it_value.tv_nsec = 0;
-    its.it_interval.tv_sec = 1;
-    its.it_interval.tv_nsec = 0;
-
-    // Start the timer
-    if (timerfd_settime(fd, 0, &its, NULL) == -1) {
-        perror("timerfd_settime");
-        return 1;
-    }
-
-    int i=0, j=0;
-    double d;
-    double accel[3], gyro[3], lla[3], gpsvel[3], pos[3];
-    while(i<numsamples){
-        for(j=0;j<imuFs/gpsFs;j++){
-            read(fd, &exp, sizeof(uint64_t));
-            fscanf(fpa, "%lf", &d);
-            accel[0]=d;
-            fscanf(fpa, "%lf", &d);
-            accel[1]=d;
-            fscanf(fpa, "%lf", &d);
-            accel[2]=d;
-            fscanf(fpg, "%lf", &d);
-            gyro[0]=d;
-            fscanf(fpg, "%lf", &d);
-            gyro[1]=d;
-            fscanf(fpg, "%lf", &d);
-            gyro[2]=d;
-            obj.updateIMU(accel, gyro);
-            getPos(obj, pos);
-            fprintf(fo, "%lf\n", pos[1]);
-            i++;
+    v.x = 42.2825000000000;
+    v.y = -71.3430000000000;
+    v.z = 53.0352000000000;
+    #endif
+    localOrigin[0] = v.x;
+    localOrigin[1] = v.y;
+    localOrigin[3] = v.z;
+    obj.init(b_initstate, imuFs, Rnoise, Qnoise, zVCst, localOrigin, &lobj_0);
+    // Loop setup
+    double acc[3], gyr[3], lla[3], gpsv[3], pos[3];
+    int writectl = 0;
+    FILE *fp;
+    while(1){
+        #ifdef TEST
+        if(skip>0){
+            skip--;
+            for(j=0;j<FREQUENCY_GYRO/FREQUENCY;j++){
+                vector_t a;
+                fscanf(fpa, "%lf", &(a.x));
+                fscanf(fpa, "%lf", &(a.y));
+                fscanf(fpa, "%lf", &(a.z));
+                a.ts = 10;
+                vector_t g;
+                fscanf(fpg, "%lf", &(g.x));
+                fscanf(fpg, "%lf", &(g.y));
+                fscanf(fpg, "%lf", &(g.z));
+                g.ts = 10;
+                enqueue(accel, a);
+                enqueue(gyro, g);
+            }
+            vector_t p;
+            fscanf(fpl, "%lf", &(p.x));
+            fscanf(fpl, "%lf", &(p.y));
+            fscanf(fpl, "%lf", &(p.z));
+            p.ts = 10;
+            vector_t v;
+            fscanf(fpv, "%lf", &(v.x));
+            fscanf(fpv, "%lf", &(v.y));
+            fscanf(fpv, "%lf", &(v.z));
+            v.ts = 10;
+            enqueue(gpsPos, p);
+            enqueue(gpsVel, v);
+            //printQueue(accel);
+            //printf("\n");
         }
-        fscanf(fpl, "%lf", &d);
-        lla[0]=d;
-        fscanf(fpl, "%lf", &d);
-        lla[1]=d;
-        fscanf(fpl, "%lf", &d);
-        lla[2]=d;
-        fscanf(fpv, "%lf", &d);
-        gpsvel[0]=d;
-        fscanf(fpv, "%lf", &d);
-        gpsvel[1]=d;
-        fscanf(fpv, "%lf", &d);
-        gpsvel[2]=d;
-        obj.updateGPS(lla, gpsvel);
+        if(isEmpty(gpsPos) && isEmpty(gpsVel) && isEmpty(accel) && isEmpty(gyro) && isEmpty(position)){
+            break;
+        }
+        #endif
+        if(isFull(gpsPos) || isFull(gpsVel)){
+            printf("GPS buffer is full!!\n");
+        }
+         if(isFull(accel) || isFull(gyro)){
+            printf("IMU buffer is full!!\n");
+        }
+        if(EKF_counter==0){
+            if(!(isEmpty(gpsPos) && isEmpty(gpsVel))){
+                vector_t v = dequeue(gpsPos);
+                lla[0] = v.x;
+                lla[1] = v.y;
+                lla[2] = v.z;
+                v = dequeue(gpsVel);
+                gpsv[0] = v.x;
+                gpsv[1] = v.y;
+                gpsv[3] = v.z;
+                obj.updateGPS(lla, gpsv);
+                EKF_counter++;
+                EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
+                writectl = 0;
+                if(fileIndicator){
+                    fclose(fp);
+                    fileIndicator = 0;
+                }
+                getPos(obj, &v);
+                enqueue(position, v);
+            } else{
+                writectl = 1;
+                if(!fileIndicator){
+                    fp = fopen("position.txt", "w");
+                    fileIndicator = 1;
+                    if (fp == NULL) {
+                    printf("Cannot open position.txt\n");
+                        break;
+                    }
+                }
+                
+            }
+        }else {
+            if(!(isEmpty(accel) && isEmpty(gyro))){
+                vector_t v = dequeue(accel);
+                acc[0] = v.x;
+                acc[1] = v.y;
+                acc[2] = v.z;
+                v = dequeue(gyro);
+                gyr[0] = v.x;
+                gyr[1] = v.y;
+                gyr[2] = v.z;
+                obj.updateIMU(acc, gyr);
+                EKF_counter++;
+                EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
+                writectl = 0;
+                if(fileIndicator){
+                    fclose(fp);
+                    fileIndicator = 0;
+                }
+                getPos(obj, &v);
+                enqueue(position, v);
+            }else{
+                writectl = 1;
+                 if(!fileIndicator){
+                    fp = fopen("position.txt", "w");
+                    fileIndicator = 1;
+                    if (fp == NULL) {
+                        printf("Cannot open position.txt\n");
+                        break;
+                    }
+                }
+            }
+        }
+        if(writectl){
+            //printQueue(position);
+            if(!isEmpty(position)){
+                vector_t v = dequeue(position);
+                fprintf(fp, "%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
+                printf("%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
+            }
+        }
     }
     fclose(fpa);
     fclose(fpg);
     fclose(fpl);
     fclose(fpv);
-    fclose(fo);
+    if(fileIndicator) fclose(fp);
 }
 
-void getPos(EKalmanGND obj, double p[]){
-    p[0] = obj.gndFusion->pState[7];
-    p[1] = obj.gndFusion->pState[8];
-    p[2] = obj.gndFusion->pState[9];
+void getVel(EKalmanGND obj, vector_t *v){
+    v->x = obj.gndFusion->pState[10];
+    v->y = obj.gndFusion->pState[11];
+    v->z = obj.gndFusion->pState[12];
+}
+
+void getPos(EKalmanGND obj, vector_t *p){
+    p->x = obj.gndFusion->pState[7];
+    p->y = obj.gndFusion->pState[8];
+    p->z = obj.gndFusion->pState[9];
 }
 void getOri(EKalmanGND obj, coder::quaternion *f){
     f->a = obj.gndFusion->pState[0];

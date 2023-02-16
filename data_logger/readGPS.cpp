@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <cmath>
 #include <math.h>
+
 #define FREQUENCY 10
 #define FREQUENCY_GYRO 160
 #define ERROR_ALIGN 
@@ -65,6 +66,7 @@ void gyro_read(double accel_scale,double angle_scale){
         data_imu[5] = numberAZ*angle_scale;
 
 }
+
 void *write_gyro(void* ignore){
         FILE *fo = fopen("gyroL.log", "a+");
     // Create the timer
