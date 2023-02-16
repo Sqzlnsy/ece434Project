@@ -210,7 +210,7 @@ int main(){
     while(1){
         gettimeofday(&tv, NULL);
         start_time =tv.tv_sec + tv.tv_usec/1000000.0;
-        printf("%f\n",start_time);
+        // printf("%f\n",start_time);
         counter++;
         count += 1;
         if (count % (FREQUENCY_GYRO/FREQUENCY)==0){
@@ -223,11 +223,11 @@ int main(){
         gettimeofday(&tv, NULL);
 
         now_time = tv.tv_sec + tv.tv_usec/1000000.0;
-        printf("%f\n",now_time);
+        // printf("%f\n",now_time);
 
         delay_time = now_time - start_time;
                     //    printf("%f\n",delay_time);
-        printf("%f\n",(delay_time*1000000.0));
+        // printf("%f\n",(delay_time*1000000.0));
 
         sleep_time = (1000000)/FREQUENCY_GYRO-(delay_time*1000000.0);
 
