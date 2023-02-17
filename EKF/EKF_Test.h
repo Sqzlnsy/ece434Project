@@ -8,8 +8,8 @@
 #include "rt_nonfinite.h"
 #include "vectorBuffer.h"
 #include "pthread.h"
-#define IMU_BUFFER_SIZE 1600
-#define GPS_BUFFER_SIZE 100
+#define IMU_BUFFER_SIZE 160
+#define GPS_BUFFER_SIZE 10
 #define FREQUENCY_GYRO 160
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
@@ -83,17 +83,19 @@ void *EKF_Test(void *ctrl)
         if(EKF_counter==0){
             if(!(isEmpty(gpsPos) || isEmpty(gpsVel))){
                 pthread_mutex_lock(&gpslock);
-                vector_t v = dequeue(gpsPos); // gps postion
+                vector_t p = dequeue(gpsPos); // gps postion
                 pthread_mutex_unlock(&gpslock);
-                lla[0] = v.x;
-                lla[1] = v.y;
-                lla[2] = v.z;
+                lla[0] = p.x;
+                lla[1] = p.y;
+                lla[2] = p.z;
                 pthread_mutex_lock(&gpslock);
-                v = dequeue(gpsVel);
+                vector_t v = dequeue(gpsVel);
                 pthread_mutex_unlock(&gpslock);
+                printf("%lf | %lf | %lf \n", lla[0], lla[1], lla[2]);
                 gpsv[0] = v.x;
                 gpsv[1] = v.y;
-                gpsv[3] = v.z;
+                gpsv[2] = v.z;
+                // printf("%lf | %lf | %lf \n", lla[0], lla[1], lla[2]);
                 obj.updateGPS(lla, gpsv);   // gps velocity
                 EKF_counter++;
                 EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
