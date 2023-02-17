@@ -57,6 +57,7 @@ FILE *fpa = fopen("accel.txt", "r");
 FILE *fpg = fopen("gyro.txt", "r");
 FILE *fpl = fopen("lla.txt", "r");
 FILE *fpv = fopen("gpsvel.txt", "r");
+
 #endif
 
 void gyro_read(double accel_scale,double angle_scale){
@@ -291,13 +292,25 @@ void* read_data(void *ignore){
         // printf("%f\n",(delay_time*1000000.0));
 
         sleep_time = (1000000)/FREQUENCY_GYRO-(delay_time*1000000.0);
+        // printf("%lf\n",(sleep_time));
 
         usleep(sleep_time);
 
         // read_file(0);
-        if(counter >= 1600){
-            EKF_ctr[1] = 0;
-            break;
+        if(counter >= 800){
+            // EKF_ctr[1] = 0;
+            // break;
+                fclose(fpa);
+                fclose(fpg);
+                fclose(fpl);
+                fclose(fpv);
+            
+            fpa = fopen("accel.txt", "r");
+            fpg = fopen("gyro.txt", "r");
+            fpl = fopen("lla.txt", "r");
+            fpv = fopen("gpsvel.txt", "r");
+            
+            counter = 0;
         }
     }
     return 0;

@@ -31,25 +31,23 @@ k = 10
 
 @app.route("/time", methods=['GET'])
 def getTime():
-    data = {'time': 1676076002}
-    #data = {'time': int(time.time())}
+    #data = {'time': 1676076002}
+    data = {'time': int(time.time())}
     return jsonify(data)
 
 @app.route("/data/<type>=<num>", methods=['GET'])
 def getData(type, num):
-    global k
     templateData = {
             'title' : 'LED Matrix',
         }
     num = int(num)
-    f = open('/home/suq/ece434Server/b', 'r')
+    f = open('../EKF/position.txt', 'r')
     #f = open('../GPS_IMU_Fusion/accel.txt', 'r')
     time_Stamp = []
     data = []
     #lines = f.readlines()[-int(k):-int(k-num)]
     lines = f.readlines()[-int(num):]
     f.close()
-    k+=num
     for line in lines:
         temp = line.split(' ')
         time_Stamp.append(temp[0])
@@ -59,4 +57,4 @@ def getData(type, num):
     return jsonify(d)
 
 if __name__ == "__main__":
-   app.run(host='0.0.0.0', port=8081)
+   app.run(host='0.0.0.0', port=8082)

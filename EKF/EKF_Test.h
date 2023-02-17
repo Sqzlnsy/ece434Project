@@ -9,7 +9,7 @@
 #include "vectorBuffer.h"
 #include "pthread.h"
 #define IMU_BUFFER_SIZE 160
-#define GPS_BUFFER_SIZE 10
+#define GPS_BUFFER_SIZE 20
 #define FREQUENCY_GYRO 160
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
@@ -23,7 +23,7 @@ Queue *gpsVel = createQueue(GPS_BUFFER_SIZE);
 Queue *position = createQueue(STATE_BUFFER_SIZE);
 
 // EKF thread control
-uint EKF_counter = 0;
+uint EKF_counter = 1;
 
 pthread_mutex_t gpslock= PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t imulock= PTHREAD_MUTEX_INITIALIZER;
@@ -37,6 +37,7 @@ void getPos(EKalmanGND obj, vector_t *p){
     p->x = obj.gndFusion->pState[7];
     p->y = obj.gndFusion->pState[8];
     p->z = obj.gndFusion->pState[9];
+    // printf("%lf\n", p->z);
 }
 void getOri(EKalmanGND obj, coder::quaternion *f){
     f->a = obj.gndFusion->pState[0];
@@ -91,7 +92,6 @@ void *EKF_Test(void *ctrl)
                 pthread_mutex_lock(&gpslock);
                 vector_t v = dequeue(gpsVel);
                 pthread_mutex_unlock(&gpslock);
-                printf("%lf | %lf | %lf \n", lla[0], lla[1], lla[2]);
                 gpsv[0] = v.x;
                 gpsv[1] = v.y;
                 gpsv[2] = v.z;
@@ -100,12 +100,13 @@ void *EKF_Test(void *ctrl)
                 EKF_counter++;
                 EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
                 writectl = 0;
-                getPos(obj, &v);
-                enqueue(position, v);
+                // getPos(obj, &v);
+                // enqueue(position, v);
             } else{
                 writectl = 1;
             }
-        }else {
+        }
+        else {
             if(!(isEmpty(accel) || isEmpty(gyro))){
                 pthread_mutex_lock(&imulock);
                 vector_t v = dequeue(accel);
@@ -113,18 +114,23 @@ void *EKF_Test(void *ctrl)
                 acc[0] = v.x;
                 acc[1] = v.y;
                 acc[2] = v.z;
+
                 pthread_mutex_lock(&imulock);
                 v = dequeue(gyro);
                 pthread_mutex_unlock(&imulock);
                 gyr[0] = v.x;
                 gyr[1] = v.y;
                 gyr[2] = v.z;
+                //printf("%lf | %lf | %lf \n", acc[0], acc[1], acc[2]);
+
                 obj.updateIMU(acc, gyr);
                 EKF_counter++;
                 EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
                 writectl = 0;
                 getPos(obj, &v);
                 enqueue(position, v);
+                //printQueue(position);
+                
             }else{
                 writectl = 1;
             }

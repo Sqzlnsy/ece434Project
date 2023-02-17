@@ -6,7 +6,7 @@
  * Jason Su
  */
 
-var _url = "http://127.0.0.1:8081";
+var _url = "http://192.168.7.2:8082";
 var rhit = rhit || {};
 
 rhit.fbPlotList = null;
@@ -49,16 +49,23 @@ rhit.dataPlot = class{
 
     putdata(xVals, yVals){
         //console.log(xVals);
-        for(let i = xVals.length-1; i >= 0; i--){
+        let maxV = xVals[0];
+        let count = 0;
+        for(let i = 0; i < xVals.length; i++){
         //for(let i = 0; i < xVals.length; i++){
-            if(xVals[i] < this.prevTime){ // need to be changed
+            if(xVals[i] > this.prevTime){ // need to be changed
                 this.dps.push({
-                    x: (initialTime- xVals[i])*1,
+                    x: (xVals[i]-initialTime)*1,
                     y: yVals[i]*1
                 });
-                this.prevTime = xVals[i];
-                //console.log("accel: "+yVals[i]+ " | "+ (1676076002- xVals[i])*100);
+                if(xVals[i]>maxV){
+                    maxV = xVals[i];
+                    count++;
+                }
             }
+            this.prevTime = maxV;
+            //console.log("accel: "+yVals[i]+ " | "+ (xVals[i]-initialTime)*1);
+            console.log("count: "+count+ " | Length"+ xVals.length);
         }
         //console.log("data put");
         while (this.dps.length > this.dataLength) {
@@ -128,10 +135,10 @@ window.onload = function () {
     .then(data => {
         initialTime = data.time;
         console.log(initialTime);
-        let p1 = new rhit.dataPlot('accelx', 32, 500, [-10, 10], initialTime);
-        let p2 = new rhit.dataPlot('accely', 32, 500, [-10, 10], initialTime);
+        let p1 = new rhit.dataPlot('accelx', 40, 1000, [-30, 30], initialTime);
+        let p2 = new rhit.dataPlot('accely', 40, 1000, [-30, 30], initialTime);
         rhit.fbPlotList.add(p1);
         rhit.fbPlotList.add(p2);
-        setInterval(function(){rhit.fbPlotList.refresh()}, 2000);
+        setInterval(function(){rhit.fbPlotList.refresh()}, 400);
     });
 }
