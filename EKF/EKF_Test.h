@@ -7,130 +7,26 @@
 #include "quaternion.h"
 #include "rt_nonfinite.h"
 #include "vectorBuffer.h"
-
-#define IMU_BUFFER_SIZE 160
-#define GPS_BUFFER_SIZE 10
+#include "pthread.h"
+#define IMU_BUFFER_SIZE 1600
+#define GPS_BUFFER_SIZE 100
 #define FREQUENCY_GYRO 160
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
 // #define TEST
 
-extern Queue *accel, *gyro, *gpsPos, *gpsVe, *position;
-extern bool fileIndicator = 0;
-extern bool writectl = 0;
-extern bool thread_ctl = 0;
+// vector buffers
+Queue *accel = createQueue(IMU_BUFFER_SIZE);
+Queue *gyro = createQueue(IMU_BUFFER_SIZE);
+Queue *gpsPos = createQueue(GPS_BUFFER_SIZE);
+Queue *gpsVel = createQueue(GPS_BUFFER_SIZE);
+Queue *position = createQueue(STATE_BUFFER_SIZE);
 
-void EKF_Test()
-{
-    const double b_initstate[16]={
-     0.707102158190293,0,0,0.707111404152578,
-    0,0,0,15.3984387870298,0.0420983831777497,0,
-    -3.45022754854589,6.73654229572201,0,0,0,0};
-    const double Rnoise[2]={1, 0.01};
-    const double Qnoise[4]={0.00400000000000000, 4.00000000000000E-10,	2,	0.000200000000000000};
-    const double zVCst=0.1;
-    uint EKF_counter = 0;
-    EKalmanGND obj;
-    coder::insfilterNonholonomic lobj_0;
-    double imuFs=FREQUENCY_GYRO, gpsFs=FREQUENCY;
-    double localOrigin[3];
-    vector_t v = rear(gpsPos);
+// EKF thread control
+uint EKF_counter = 0;
 
-    localOrigin[0] = v.x;
-    localOrigin[1] = v.y;
-    localOrigin[3] = v.z;
-    obj.init(b_initstate, imuFs, Rnoise, Qnoise, zVCst, localOrigin, &lobj_0);
-    // Loop setup 
-   double acc[3], gyr[3], lla[3], gpsv[3], pos[3];
-    FILE *fp;
-    while(1){
-        if(isFull(gpsPos) || isFull(gpsVel)){
-            printf("GPS buffer is full!!\n");
-        }
-        if(isFull(accel) || isFull(gyro)){
-            printf("IMU buffer is full!!\n");
-        }
-        if(EKF_counter==0){
-            if(!(isEmpty(gpsPos) && isEmpty(gpsVel))){
-                vector_t v = dequeue(gpsPos);
-                lla[0] = v.x;
-                lla[1] = v.y;
-                lla[2] = v.z;
-                v = dequeue(gpsVel);
-                gpsv[0] = v.x;
-                gpsv[1] = v.y;
-                gpsv[3] = v.z;
-                obj.updateGPS(lla, gpsv);
-                EKF_counter++;
-                EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
-                writectl = 0;
-                if(fileIndicator){
-                    fclose(fp);
-                    fileIndicator = 0;
-                }
-                getPos(obj, &v);
-                enqueue(position, v);
-            } else{
-                writectl = 1;
-                if(!fileIndicator){
-                    fp = fopen("position.txt", "w");
-                    fileIndicator = 1;
-                    if (fp == NULL) {
-                    printf("Cannot open position.txt\n");
-                        break;
-                    }
-                }
-                
-            }
-        }else {
-            if(!(isEmpty(accel) && isEmpty(gyro))){
-                vector_t v = dequeue(accel);
-                acc[0] = v.x;
-                acc[1] = v.y;
-                acc[2] = v.z;
-                v = dequeue(gyro);
-                gyr[0] = v.x;
-                gyr[1] = v.y;
-                gyr[2] = v.z;
-                obj.updateIMU(acc, gyr);
-                EKF_counter++;
-                EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
-                writectl = 0;
-                if(fileIndicator){
-                    fclose(fp);
-                    fileIndicator = 0;
-                }
-                getPos(obj, &v);
-                enqueue(position, v);
-            }else{
-                writectl = 1;
-                 if(!fileIndicator){
-                    fp = fopen("position.txt", "w");
-                    fileIndicator = 1;
-                    if (fp == NULL) {
-                        printf("Cannot open position.txt\n");
-                        break;
-                    }
-                }
-            }
-        }
-        if(writectl){
-            //printQueue(position);
-            if(!isEmpty(position)){
-                vector_t v = dequeue(position);
-                fprintf(fp, "%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
-                printf("%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
-            }
-        }
-        if(isEmpty(gpsPos) && isEmpty(gpsVel) && isEmpty(accel) && isEmpty(gyro) && isEmpty(position)){
-            if(fileIndicator){
-                fclose(fp);
-                fileIndicator = 0;
-            }
-        }
-    }
-    if(fileIndicator) fclose(fp);
-}
+pthread_mutex_t gpslock= PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t imulock= PTHREAD_MUTEX_INITIALIZER;
 
 void getVel(EKalmanGND obj, vector_t *v){
     v->x = obj.gndFusion->pState[10];
@@ -147,4 +43,103 @@ void getOri(EKalmanGND obj, coder::quaternion *f){
     f->b = obj.gndFusion->pState[1];
     f->c = obj.gndFusion->pState[2];
     f->d = obj.gndFusion->pState[3];
+}
+
+void *EKF_Test(void *ctrl)
+{
+    bool *sig = (bool*) ctrl;
+    const double b_initstate[16]={
+     0.707102158190293,0,0,0.707111404152578,
+    0,0,0,15.3984387870298,0.0420983831777497,0,
+    -3.45022754854589,6.73654229572201,0,0,0,0};
+    const double Rnoise[2]={1, 0.01};
+    const double Qnoise[4]={0.00400000000000000, 4.00000000000000E-10,	2,	0.000200000000000000};
+    const double zVCst=0.1;
+    uint EKF_counter = 0;
+    EKalmanGND obj;
+    coder::insfilterNonholonomic lobj_0;
+    double imuFs=FREQUENCY_GYRO, gpsFs=FREQUENCY;
+    double localOrigin[3];
+    while(isEmpty(gpsPos));
+    vector_t v = rear(gpsPos);
+    localOrigin[0] = v.x;
+    localOrigin[1] = v.y;
+    localOrigin[3] = v.z;
+    obj.init(b_initstate, imuFs, Rnoise, Qnoise, zVCst, localOrigin, &lobj_0);
+    // Loop setup 
+   double acc[3], gyr[3], lla[3], gpsv[3], pos[3];
+    FILE *fp;
+    while(1){
+        bool writectl = sig[0];
+        bool thread_ctl = sig[1];
+        if(isFull(gpsPos) || isFull(gpsVel)){
+            printf("GPS buffer is full!!\n");
+            printQueue(gpsVel);
+            printQueue(gpsPos);
+        }
+        if(isFull(accel) || isFull(gyro)){
+            printf("IMU buffer is full!!\n");
+        }
+        if(EKF_counter==0){
+            if(!(isEmpty(gpsPos) || isEmpty(gpsVel))){
+                pthread_mutex_lock(&gpslock);
+                vector_t v = dequeue(gpsPos); // gps postion
+                pthread_mutex_unlock(&gpslock);
+                lla[0] = v.x;
+                lla[1] = v.y;
+                lla[2] = v.z;
+                pthread_mutex_lock(&gpslock);
+                v = dequeue(gpsVel);
+                pthread_mutex_unlock(&gpslock);
+                gpsv[0] = v.x;
+                gpsv[1] = v.y;
+                gpsv[3] = v.z;
+                obj.updateGPS(lla, gpsv);   // gps velocity
+                EKF_counter++;
+                EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
+                writectl = 0;
+                getPos(obj, &v);
+                enqueue(position, v);
+            } else{
+                writectl = 1;
+            }
+        }else {
+            if(!(isEmpty(accel) || isEmpty(gyro))){
+                pthread_mutex_lock(&imulock);
+                vector_t v = dequeue(accel);
+                pthread_mutex_unlock(&imulock);
+                acc[0] = v.x;
+                acc[1] = v.y;
+                acc[2] = v.z;
+                pthread_mutex_lock(&imulock);
+                v = dequeue(gyro);
+                pthread_mutex_unlock(&imulock);
+                gyr[0] = v.x;
+                gyr[1] = v.y;
+                gyr[2] = v.z;
+                obj.updateIMU(acc, gyr);
+                EKF_counter++;
+                EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
+                writectl = 0;
+                getPos(obj, &v);
+                enqueue(position, v);
+            }else{
+                writectl = 1;
+            }
+        }
+        if(writectl){
+            //printQueue(position);
+            fp = fopen("position.txt", "a+");
+            while(!isEmpty(position)){
+                vector_t v = dequeue(position);
+                fprintf(fp, "%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
+                //printf("%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
+            }
+            fclose(fp);
+        }
+        if(!thread_ctl){
+            break;
+        }
+    }
+    return 0;
 }

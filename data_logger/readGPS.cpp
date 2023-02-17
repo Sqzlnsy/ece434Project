@@ -10,6 +10,11 @@
 #include <cmath>
 #include <math.h>
 
+
+
+
+
+
 #define FREQUENCY 10
 #define FREQUENCY_GYRO 160
 #define ERROR_ALIGN 

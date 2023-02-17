@@ -12,43 +12,37 @@
 #include <pthread.h>
 #include "vectorBuffer.h"
 #include "EKF_Test.h"
-
-#define IMU_BUFFER_SIZE 160
-#define GPS_BUFFER_SIZE 10
+#define SIMULATE
 #define FREQUENCY_GYRO 160
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
-#define TEST
 
 // vector buffers
-Queue *accel = createQueue(IMU_BUFFER_SIZE);
-Queue *gyro = createQueue(IMU_BUFFER_SIZE);
-Queue *gpsPos = createQueue(GPS_BUFFER_SIZE);
-Queue *gpsVel = createQueue(GPS_BUFFER_SIZE);
-Queue *position = createQueue(STATE_BUFFER_SIZE);
+// Queue *accel = createQueue(IMU_BUFFER_SIZE);
+// Queue *gyro = createQueue(IMU_BUFFER_SIZE);
+// Queue *gpsPos = createQueue(GPS_BUFFER_SIZE);
+// Queue *gpsVel = createQueue(GPS_BUFFER_SIZE);
+// Queue *position = createQueue(STATE_BUFFER_SIZE);
 
 // EKF thread control
-uint EKF_counter = 0;
-bool thread_ctl = 0;
-bool fileIndicator = 0;
-bool writectl = 0;
+// uint EKF_counter = 0;
+// bool thread_ctl = 0;
+// bool fileIndicator = 0;
+// bool writectl = 0;
 
 // Filter parameters 
-const double b_initstate[16]={
-     0.707102158190293,0,0,0.707111404152578,
-    0,0,0,15.3984387870298,0.0420983831777497,0,
-    -3.45022754854589,6.73654229572201,0,0,0,0};
-const double Rnoise[2]={1, 0.01};
-const double Qnoise[4]={0.00400000000000000, 4.00000000000000E-10,	2,	0.000200000000000000};
-const double zVCst=0.1;
-
-#ifdef TEST
-int skip = 5;
-int count = 1000;
-#endif
+// const double b_initstate[16]={
+//      0.707102158190293,0,0,0.707111404152578,
+//     0,0,0,15.3984387870298,0.0420983831777497,0,
+//     -3.45022754854589,6.73654229572201,0,0,0,0};
+// const double Rnoise[2]={1, 0.01};
+// const double Qnoise[4]={0.00400000000000000, 4.00000000000000E-10,	2,	0.000200000000000000};
+// const double zVCst=0.1;
 
 double data_gps[7];
 double data_imu[6];
+bool EKF_ctr[2];
+
 
 struct flock lock;
 struct itimerspec its;
@@ -57,6 +51,13 @@ char buffer[1024];
 size_t buffer_size = sizeof(buffer);
 int counter = 0;
 pthread_t thread1,thread2;
+
+#ifdef SIMULATE
+FILE *fpa = fopen("accel.txt", "r");
+FILE *fpg = fopen("gyro.txt", "r");
+FILE *fpl = fopen("lla.txt", "r");
+FILE *fpv = fopen("gpsvel.txt", "r");
+#endif
 
 void gyro_read(double accel_scale,double angle_scale){
         FILE *fileZ = fopen("/sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/in_accel_z_raw","r");
@@ -98,24 +99,12 @@ void gyro_read(double accel_scale,double angle_scale){
         data_imu[5] = numberAZ*angle_scale;
 
         #ifdef SIMULATE
-        int i=0, j=0;
-        FILE *fpa = fopen("accel.txt", "r");
-        if (fpa == NULL) {
-            printf("Cannot open accel.txt");
-        }
-        FILE *fpg = fopen("gyro.txt", "r");
-        if (fpg == NULL) {
-            printf("Cannot open gyro.txt");
-        }
-        fscanf(fpa, "%lf", data_imu));
-        fscanf(fpa, "%lf", data_imu+1));
-        fscanf(fpa, "%lf", data_imu+2));
-        fscanf(fpg, "%lf", data_imu+3));
-        fscanf(fpg, "%lf", data_imu+4));
-        fscanf(fpg, "%lf", data_imu+5));
-        fclose(fpa);
-        fclose(fpg);
-
+        fscanf(fpa, "%lf", data_imu);
+        fscanf(fpa, "%lf", data_imu+1);
+        fscanf(fpa, "%lf", data_imu+2);
+        fscanf(fpg, "%lf", data_imu+3);
+        fscanf(fpg, "%lf", data_imu+4);
+        fscanf(fpg, "%lf", data_imu+5);
         #endif
 }
 
@@ -139,13 +128,16 @@ void *write_gyro(void* ignore){
             double time = sec + usec;
             vector_t a = {data_imu[0], data_imu[1], data_imu[2], time};
             vector_t g = {data_imu[3], data_imu[4], data_imu[5], time};
+            pthread_mutex_lock(&imulock);
             enqueue(accel, a);
             enqueue(gyro, g);
+            pthread_mutex_unlock(&imulock);
             fprintf(fo, "%lf %lf %lf %lf %lf %lf %lf\n"
                         ,time, data_imu[0],data_imu[1],data_imu[2],data_imu[3],data_imu[4],data_imu[5]);
-            if(counter%100==0)
-            printf("x_speed: %lf y_speed:%lf z_speed:%lf\n x_accel:%lf y_accel:%lf z_accel:%lf\n",
-                    data_imu[3],data_imu[4],data_imu[5],data_imu[0],data_imu[1],data_imu[2]);
+            if(counter%100==0);
+            // printf("x_speed: %lf y_speed:%lf z_speed:%lf\n x_accel:%lf y_accel:%lf z_accel:%lf\n",
+            //         data_imu[3],data_imu[4],data_imu[5],data_imu[0],data_imu[1],data_imu[2]);
+            // printQueue(accel);
 
             fclose(fo);
     return 0;
@@ -154,10 +146,13 @@ void *write_gyro(void* ignore){
 void* clear_file(void* ignore){
     FILE *fo = fopen("gpsL.log", "w");
     FILE *fg = fopen("gyroL.log", "w");
+    FILE *fp = fopen("position.txt", "w");
     fprintf(fo, "");
     fprintf(fg, "");
+    fprintf(fp, "");
     fclose(fo);
     fclose(fg);
+    fclose(fp);
     return 0;
 }
 void* write_gps_file(void* ignor) {
@@ -209,22 +204,13 @@ void* write_gps_file(void* ignor) {
             double nb_speed = gps_d.fix.NED.velN;
             
             #ifdef SIMULATE
-            FILE *fpl = fopen("lla.txt", "r");
-            if (fpl == NULL) {
-                printf("Cannot open lla.txt");
-            }
-            FILE *fpv = fopen("gpsvel.txt", "r");
-            if (fpv == NULL) {
-                printf("Cannot open gpsvel.txt");
-            }
-            fscanf(fpl, "%lf", &(latitude));
-            fscanf(fpl, "%lf", &(longitude));
-            fscanf(fpl, "%lf", &(altitude));
-            fscanf(fpv, "%lf", &(nb_speed));
-            fscanf(fpv, "%lf", &(dx_speed));
-            fscanf(fpv, "%lf", &(climb));
-            fclose(fpl);
-            fclose(fpv);
+            fscanf(fpl, "%lf", &latitude);
+            fscanf(fpl, "%lf", &longitude);
+            fscanf(fpl, "%lf", &altitude);
+            fscanf(fpv, "%lf", &nb_speed);
+            fscanf(fpv, "%lf", &dx_speed);
+            fscanf(fpv, "%lf", &climb);
+            track = 100;
             #endif
 
             #ifdef LOGGING 
@@ -238,33 +224,22 @@ void* write_gps_file(void* ignor) {
 
                        
             fprintf(fo, "%lf %lf %lf %lf %lf %lf %lf\n"
-                        ,time,data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5],data_gps[6] );
+                        ,time,data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[4] ,data_gps[5],data_gps[6] );
             if(counter%100==0)
             printf("latitude:%lf longitude:%lf altitude:%lf\n track:%lf climb:%lf dx_speed:%lf nb_speed:%lf\n",
                         data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5],data_gps[6]);
             fclose(fo);
             #endif
+            pthread_mutex_lock(&gpslock);
             vector_t v = {nb_speed, dx_speed, climb, time};
             enqueue(gpsVel, v);
             vector_t p = {latitude, longitude, altitude, time};
             enqueue(gpsPos, p);
+            pthread_mutex_unlock(&gpslock);
+            //if(counter%100==0) printQueue(gpsVel);
     return 0;
 }
-void read_data(void *ignore){
-
-}
-
-int main(){
-
-    pthread_create(&thread1,0,read_data,0);
-    pthread_create(&thread2,0,EKF_Test,0);
-
-
-
-
-
-
-
+void* read_data(void *ignore){
 
     lock.l_type = F_WRLCK;
     lock.l_whence = SEEK_SET;
@@ -321,8 +296,25 @@ int main(){
 
         // read_file(0);
         if(counter >= 1600){
+            EKF_ctr[1] = 0;
             break;
         }
-
     }
+    return 0;
+}
+
+int main(){
+    EKF_ctr[0] = 1;
+    EKF_ctr[1] = 1;
+    pthread_create(&thread1,0,read_data,0);
+    pthread_create(&thread2,0,EKF_Test,EKF_ctr);
+
+    pthread_join(thread1,0);
+    pthread_join(thread2,0);
+    #ifdef SIMULATE
+    fclose(fpa);
+    fclose(fpg);
+    fclose(fpl);
+    fclose(fpv);
+    #endif
 }

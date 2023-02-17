@@ -14,7 +14,7 @@ config-pin P9.20 i2c
 # echo 1 > /sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/scan_elements/in_anglvel_z_en
 
 # echo 512 > /sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/buffer/length
-echo 0 > /sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/buffer/enable
+# echo 0 > /sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/buffer/enable
 
 
 
