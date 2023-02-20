@@ -11,10 +11,6 @@
 #include <math.h>
 
 
-
-
-
-
 #define FREQUENCY 10
 #define FREQUENCY_GYRO 160
 #define ERROR_ALIGN 
@@ -170,7 +166,7 @@ void* write_gps_file(void* ignor) {
 
             
             fprintf(fo, "%lf %lf %lf %lf %lf %lf %lf\n"
-                        ,time,data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5],data_gps[6] );
+                        ,time,data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[4] ,data_gps[5],data_gps[6]);
             if(counter%100==0)
             printf("latitude:%lf longitude:%lf altitude:%lf\n track:%lf climb:%lf dx_speed:%lf nb_speed:%lf\n",
                         data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5],data_gps[6]);

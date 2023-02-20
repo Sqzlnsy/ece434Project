@@ -8,9 +8,9 @@
 #include "rt_nonfinite.h"
 #include "vectorBuffer.h"
 #include "pthread.h"
-#define IMU_BUFFER_SIZE 160
+#define IMU_BUFFER_SIZE 100
 #define GPS_BUFFER_SIZE 20
-#define FREQUENCY_GYRO 160
+#define FREQUENCY_GYRO 100
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
 // #define TEST
@@ -63,6 +63,7 @@ void *EKF_Test(void *ctrl)
     double localOrigin[3];
     while(isEmpty(gpsPos));
     vector_t v = rear(gpsPos);
+    printQueue(gpsPos);
     localOrigin[0] = v.x;
     localOrigin[1] = v.y;
     localOrigin[3] = v.z;
