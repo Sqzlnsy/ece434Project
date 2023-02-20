@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
-#include "EKalmanGND.h"
-#include "insfilterNonholonomic.h"
-#include "quaternion.h"
-#include "rt_nonfinite.h"
-#include "vectorBuffer.h"
+#include "../EKF/EKalmanGND.h"
+#include "../EKF/insfilterNonholonomic.h"
+#include "../EKF/quaternion.h"
+#include "../EKF/rt_nonfinite.h"
+#include "../EKF/vectorBuffer.h"
 #include "pthread.h"
 #define IMU_BUFFER_SIZE 100
 #define GPS_BUFFER_SIZE 20
