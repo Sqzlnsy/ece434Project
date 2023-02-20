@@ -1,10 +1,55 @@
-<!DOCTYPE HTML>
 <html>
 <head>
 <meta charset="UTF-8">
 </head>
+<style>
+    /* Style the dropdown button */
+    .dropbtn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    }
+
+    /* Style the dropdown content */
+    .dropdown-content {
+    display: none;
+    position: absolute;
+    z-index: 1;
+    }
+
+    /* Style the options as buttons */
+    .dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    }
+
+    .dropdown-content a:hover {
+    background-color: #f1f1f1;
+    }
+
+    /* Show the dropdown content when the button is clicked */
+    .dropdown:hover .dropdown-content {
+    display: block;
+    }
+
+</style>
 <body>
-<div class="list-group"></div>
+    <div class="dropdown">
+        <button class="dropbtn">Data Plots</button>
+        <div class="dropdown-content">
+          <a id="imu-1_40_1000_-30_30">accel X</a>
+          <a id="imu-2_40_1000_-30_30">accel Y</a>
+          <a id="imu-3_40_1000_-30_20">accel Z</a>
+          <a id="vel_40_1000_-5_50">Speed</a>
+          <a id="CAN-1_20_500_0_10000">Engine RPM</a>
+          <a id="CAN-2_20_500_0_100">Throttle</a>
+        </div>
+      </div>
+    <div class="list-group"></div>
 <script src="scripts/canvasjs.min.js"></script>
 <script src="scripts/main.js"></script>
 </body>
