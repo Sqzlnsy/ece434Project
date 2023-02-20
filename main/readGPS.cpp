@@ -16,10 +16,10 @@
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
 #define LOGGING
-#define GYRO_PATH "../data/gyroL.log"
-#define GPS_PATH "../data/gpsL.log"
-#define POS_PATH "../data/pos.log"
-#define VEL_PATH "../data/vel.log"
+#define GYRO_PATH "data/gyroL.log"
+#define GPS_PATH "data/gpsL.log"
+#define POS_PATH "data/pos.log"
+#define VEL_PATH "data/vel.log"
 
 
 // vector buffers

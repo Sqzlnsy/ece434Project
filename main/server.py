@@ -2,6 +2,7 @@
 # Jason Su @ 01/07/2023
 from flask import Flask, request, render_template, jsonify
 import time
+import math
 ACCEL_X = 1
 ACCEL_Y = 2
 ACCEL_Z = 3
@@ -41,7 +42,13 @@ def getData(type, num):
             'title' : 'LED Matrix',
         }
     num = int(num)
-    f = open('../EKF/position.txt', 'r')
+    k = type.split('-')
+    
+    file_name = k[0]+".log"
+    col = int(k[1])
+    print ("filename = "+ file_name + "  col = ",col)
+    f = open("data/"+file_name,'r')
+
     #f = open('../GPS_IMU_Fusion/accel.txt', 'r')
     time_Stamp = []
     data = []
@@ -51,7 +58,10 @@ def getData(type, num):
     for line in lines:
         temp = line.split(' ')
         time_Stamp.append(temp[0])
-        data.append(temp[ACCEL_X])
+        if (file_name != "vel.log"):
+            data.append(temp[col])
+        else:
+            data.append(math.sqrt(temp[0]**2+temp[1]**2+temp[2]**2))
     #print(data)
     d = {'param': data, 'ts': time_Stamp}
     return jsonify(d)

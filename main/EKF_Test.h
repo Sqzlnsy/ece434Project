@@ -21,6 +21,7 @@ Queue *gyro = createQueue(IMU_BUFFER_SIZE);
 Queue *gpsPos = createQueue(GPS_BUFFER_SIZE);
 Queue *gpsVel = createQueue(GPS_BUFFER_SIZE);
 Queue *position = createQueue(STATE_BUFFER_SIZE);
+Queue *velocity = createQueue(STATE_BUFFER_SIZE);
 
 // EKF thread control
 uint EKF_counter = 1;
@@ -70,7 +71,7 @@ void *EKF_Test(void *ctrl)
     obj.init(b_initstate, imuFs, Rnoise, Qnoise, zVCst, localOrigin, &lobj_0);
     // Loop setup 
    double acc[3], gyr[3], lla[3], gpsv[3], pos[3];
-    FILE *fp;
+    FILE *fp, *fv;
     while(1){
         bool writectl = sig[0];
         bool thread_ctl = sig[1];
@@ -130,6 +131,8 @@ void *EKF_Test(void *ctrl)
                 writectl = 0;
                 getPos(obj, &v);
                 enqueue(position, v);
+                getVel(obj, &v);
+                enqueue(velocity, v);
                 //printQueue(position);
                 
             }else{
@@ -138,13 +141,17 @@ void *EKF_Test(void *ctrl)
         }
         if(writectl){
             //printQueue(position);
-            fp = fopen("position.txt", "a+");
-            while(!isEmpty(position)){
+            fp = fopen("pos.log", "a+");
+            fv = fopen("vel.log", "a+");
+            while(!isEmpty(position) && !isEmpty(velocity)){
                 vector_t v = dequeue(position);
                 fprintf(fp, "%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
+                vector_t p = dequeue(velocity);
+                fprintf(fv, "%lf %lf %lf %lf\n", p.ts, p.x, p.y, p.z);
                 //printf("%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
             }
             fclose(fp);
+            fclose(fv);
         }
         if(!thread_ctl){
             break;
