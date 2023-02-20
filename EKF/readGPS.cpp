@@ -16,6 +16,7 @@
 #define FREQUENCY_GYRO 100
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
+<<<<<<< HEAD
 //#define LOGGING
 
 // vector buffers
@@ -39,6 +40,9 @@
 // const double Rnoise[2]={1, 0.01};
 // const double Qnoise[4]={0.00400000000000000, 4.00000000000000E-10,	2,	0.000200000000000000};
 // const double zVCst=0.1;
+=======
+#define LOG_DIR "../data_logger/"
+>>>>>>> d748685487f6dd3b1a23cbd032c265d416307e62
 
 double data_gps[7];
 double data_imu[6];
@@ -111,7 +115,7 @@ void gyro_read(double accel_scale,double angle_scale){
 }
 
 void *write_gyro(void* ignore){
-        FILE *fo = fopen("gyroL.log", "a+");
+        FILE *fo = fopen(LOG_DIR+"gyroL.log", "a+");
     // Create the timer
         int i =0;
     // Set the gpsd daemon to streaming mode
@@ -146,9 +150,9 @@ void *write_gyro(void* ignore){
 }
 
 void* clear_file(void* ignore){
-    FILE *fo = fopen("gpsL.log", "w");
-    FILE *fg = fopen("gyroL.log", "w");
-    FILE *fp = fopen("position.txt", "w");
+    FILE *fo = fopen(LOG_DIR+"gpsL.log", "w");
+    FILE *fg = fopen(LOG_DIR+"gyroL.log", "w");
+    FILE *fp = fopen(LOG_DIR+"pos.log", "w");
     fprintf(fo, "");
     fprintf(fg, "");
     fprintf(fp, "");
@@ -162,7 +166,7 @@ void* write_gps_file(void* ignor) {
     int i =0;
     #ifdef LOGGING
     // Set the gpsd daemon to streaming mode
-    FILE *fo = fopen("gpsL.log", "a+");
+    FILE *fo = fopen(LOG_DIR+"gpsL.log", "a+");
 
     int fde = fileno(fo);
     fcntl(fde, F_SETLKW, &lock);

@@ -31,8 +31,8 @@ k = 10
 
 @app.route("/time", methods=['GET'])
 def getTime():
-    #data = {'time': 1676076002}
-    data = {'time': int(time.time())}
+    data = {'time': 1676076002}
+    #data = {'time': int(time.time())}
     return jsonify(data)
 
 @app.route("/data/<type>=<num>", methods=['GET'])
