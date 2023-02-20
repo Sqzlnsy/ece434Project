@@ -7,17 +7,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <cmath>
-#include <math.h>
 #include <pthread.h>
-#include "vectorBuffer.h"
+#include "./dependencies/vectorBuffer.h"
 #include "EKF_Test.h"
-//#define SIMULATE
+// #define SIMULATE
 #define FREQUENCY_GYRO 100
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
-<<<<<<< HEAD
-//#define LOGGING
+#define LOGGING
 
 // vector buffers
 // Queue *accel = createQueue(IMU_BUFFER_SIZE);
@@ -40,9 +37,6 @@
 // const double Rnoise[2]={1, 0.01};
 // const double Qnoise[4]={0.00400000000000000, 4.00000000000000E-10,	2,	0.000200000000000000};
 // const double zVCst=0.1;
-=======
-#define LOG_DIR "../data_logger/"
->>>>>>> d748685487f6dd3b1a23cbd032c265d416307e62
 
 double data_gps[7];
 double data_imu[6];
@@ -55,13 +49,13 @@ struct gps_data_t gps_d;
 char buffer[1024];
 size_t buffer_size = sizeof(buffer);
 int counter = 0;
-pthread_t thread1,thread2;
+pthread_t thread1,thread2,thread3;
 
 #ifdef SIMULATE
-FILE *fpa = fopen("accel.txt", "r");
-FILE *fpg = fopen("gyro.txt", "r");
-FILE *fpl = fopen("lla.txt", "r");
-FILE *fpv = fopen("gpsvel.txt", "r");
+FILE *fpa = fopen("./log/accel.txt", "r");
+FILE *fpg = fopen("./log/gyro.txt", "r");
+FILE *fpl = fopen("./log/lla.txt", "r");
+FILE *fpv = fopen("./log/gpsvel.txt", "r");
 
 #endif
 
@@ -80,6 +74,7 @@ void gyro_read(double accel_scale,double angle_scale){
             printf("Error opening raw data file\n");
             return;
         }
+
         fscanf(fileZ, "%d", &numberZ);
         fscanf(fileX, "%d", &numberX);
         fscanf(fileY, "%d", &numberY);
@@ -115,7 +110,7 @@ void gyro_read(double accel_scale,double angle_scale){
 }
 
 void *write_gyro(void* ignore){
-        FILE *fo = fopen(LOG_DIR+"gyroL.log", "a+");
+        FILE *fo = fopen("./log/gyroL.log", "a+");
     // Create the timer
         int i =0;
     // Set the gpsd daemon to streaming mode
@@ -150,9 +145,9 @@ void *write_gyro(void* ignore){
 }
 
 void* clear_file(void* ignore){
-    FILE *fo = fopen(LOG_DIR+"gpsL.log", "w");
-    FILE *fg = fopen(LOG_DIR+"gyroL.log", "w");
-    FILE *fp = fopen(LOG_DIR+"pos.log", "w");
+    FILE *fo = fopen("./log/gpsL.log", "w");
+    FILE *fg = fopen("./log/gyroL.log", "w");
+    FILE *fp = fopen("./log/position.txt", "w");
     fprintf(fo, "");
     fprintf(fg, "");
     fprintf(fp, "");
@@ -166,13 +161,13 @@ void* write_gps_file(void* ignor) {
     int i =0;
     #ifdef LOGGING
     // Set the gpsd daemon to streaming mode
-    FILE *fo = fopen(LOG_DIR+"gpsL.log", "a+");
+    FILE *fo = fopen("./log/gpsL.log", "a+");
 
     int fde = fileno(fo);
     fcntl(fde, F_SETLKW, &lock);
 
     if (fo == NULL) {
-        perror("Cannot open output.txt");
+        perror("Cannot open gpsL.txt");
     }
     #endif    
         // Sample the data here
@@ -201,15 +196,13 @@ void* write_gps_file(void* ignor) {
             latitude =latitude+ gps_d.fix.latitude;
             longitude =longitude+ gps_d.fix.longitude;
             altitude =altitude+ gps_d.fix.altHAE;
-            track = track+gps_d.fix.track * M_PI/180.0;//angle
+            track = track+gps_d.fix.track;//angle
             if(!(track>=-360) || !(track<=360)){
                 track = 0;
             }
             double climb = gps_d.fix.climb;
-            // double dx_speed = gps_d.fix.NED.velE;
-            // double nb_speed = gps_d.fix.NED.velN;
-            double dx_speed = gps_d.fix.speed*cos(track);
-            double nb_speed = gps_d.fix.speed*sin(track);
+            double dx_speed = gps_d.fix.NED.velE;
+            double nb_speed = gps_d.fix.NED.velN;
             
             #ifdef SIMULATE
             fscanf(fpl, "%lf", &latitude);
@@ -238,7 +231,6 @@ void* write_gps_file(void* ignor) {
                         data_gps[0],data_gps[1] ,data_gps[2] ,data_gps[3] ,data_gps[4] ,data_gps[5],data_gps[6]);
             fclose(fo);
             #endif
-            
             pthread_mutex_lock(&gpslock);
             vector_t v = {nb_speed, dx_speed, climb, time};
             enqueue(gpsVel, v);
@@ -255,9 +247,16 @@ void* read_data(void *ignore){
     lock.l_start = 0;
     lock.l_len = 0;
         // Connect to the gpsd daemon
+    int gps_fd = gps_open("localhost", "2947", &gps_d);
     pthread_t new_thread,new_thread2;
+    if (gps_fd == -1) {
+        // Error connecting to gpsd
+        perror("Error connecting to gpsd\n");
+        return 0;
+    }
+    gps_stream(&gps_d, WATCH_ENABLE | WATCH_JSON, NULL);
     printf("start sleep...\n");
-
+    sleep(2);
     FILE *scale_Accel = fopen("/sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/in_accel_scale","r");
     FILE *scale_Angle = fopen("/sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/in_anglvel_scale","r");
     double accel_scale,angle_scale; 
@@ -277,72 +276,44 @@ void* read_data(void *ignore){
         counter++;
         count += 1;
         if (count % (FREQUENCY_GYRO/FREQUENCY)==0){
-            write_gps_file(0);
+            pthread_create(&thread3,0,write_gps_file,0);
         }
-    
         gyro_read(accel_scale,angle_scale);
-
         write_gyro(0);
 
-        gettimeofday(&tv, NULL);
 
-        now_time = tv.tv_sec + tv.tv_usec/1000000.0;
-        // printf("%f\n",now_time);
-
-        delay_time = now_time - start_time;
-                    //    printf("%f\n",delay_time);
-        // printf("%f\n",(delay_time*1000000.0));
-
-        sleep_time = (1000000)/FREQUENCY_GYRO-(delay_time*1000000.0);
-        if(sleep_time > 3000){
-            
-        }
+ 
         // printf("%lf\n",(sleep_time));
 
-        usleep(sleep_time);
 
         // read_file(0);
-        #ifdef SIMULATE
-        if(counter >= 800){
-            // EKF_ctr[1] = 0;
-            // break;
-            fclose(fpa);
-            fclose(fpg);
-            fclose(fpl);
-            fclose(fpv);
-            
-            fpa = fopen("accel.txt", "r");
-            fpg = fopen("gyro.txt", "r");
-            fpl = fopen("lla.txt", "r");
-            fpv = fopen("gpsvel.txt", "r");
-            
-            counter = 0;
-        }
-        #endif
+        // if(counter == 800){
+        //     // EKF_ctr[1] = 0;
+        //     // break;
+        //     #ifdef SIMULATE
+        //         fclose(fpa);
+        //         fclose(fpg);
+        //         fclose(fpl);
+        //         fclose(fpv);
+        //     fpa = fopen("./log/accel.txt", "r");
+        //     fpg = fopen("./log/gyro.txt", "r");
+        //     fpl = fopen("./log/lla.txt", "r");
+        //     fpv = fopen("./log/gpsvel.txt", "r");
+        //     #endif
+        //     counter = 0;
+        // }
+        pthread_join(thread3,0);
+               gettimeofday(&tv, NULL);
+        now_time = tv.tv_sec + tv.tv_usec/1000000.0;
+        delay_time = now_time - start_time;
+        sleep_time = (1000000)/FREQUENCY_GYRO-(delay_time*1000000.0);
+        usleep(sleep_time);
+
     }
     return 0;
 }
 
 int main(){
-    int gps_fd = gps_open("localhost", "2947", &gps_d);
-    if (gps_fd == -1) {
-        // Error connecting to gpsd
-        perror("Error connecting to gpsd\n");
-        return 0;
-    }
-    gps_stream(&gps_d, WATCH_ENABLE | WATCH_JSON, NULL);
-
-    while(1){
-        if (gps_read(&gps_d, buffer, buffer_size) == -1) {
-        // Error reading GPS data
-        perror("Error reading GPS data\n");
-        return 0;
-    }
-        if(gps_d.fix.latitude < 90 &&  gps_d.fix.latitude > -90){
-            break;
-        }   
-    }
-
     EKF_ctr[0] = 1;
     EKF_ctr[1] = 1;
     pthread_create(&thread1,0,read_data,0);
