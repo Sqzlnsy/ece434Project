@@ -319,6 +319,24 @@ void* read_data(void *ignore){
 }
 
 int main(){
+    int gps_fd = gps_open("localhost", "2947", &gps_d);
+    if (gps_fd == -1) {
+        // Error connecting to gpsd
+        perror("Error connecting to gpsd\n");
+        return 0;
+    }
+    gps_stream(&gps_d, WATCH_ENABLE | WATCH_JSON, NULL);
+
+    while(1){
+        if (gps_read(&gps_d, buffer, buffer_size) == -1) {
+        // Error reading GPS data
+        perror("Error reading GPS data\n");
+        return 0;
+    }
+        if(gps_d.fix.latitude < 90 &&  gps_d.fix.latitude > -90){
+            break;
+        }   
+    }
     EKF_ctr[0] = 1;
     EKF_ctr[1] = 1;
     pthread_create(&thread1,0,read_data,0);

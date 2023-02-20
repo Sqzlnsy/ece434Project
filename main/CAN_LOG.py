@@ -1,15 +1,15 @@
 #!/usr/bin/python
 import can
-import OBDII_PID
 import time
 import os
+import sys
+sys.path.append('../OBDII_LOGGER')
 
-log_dir = '/tmp/CAN_LOG/'
-categories = {OBDII_PID.ENGINE_RPM: 'ENGINE_RPM', OBDII_PID.THROTTLE_POSITION: 'THROTTLE_POSITION'}
-file_dirs = {}
-for key in categories:
-    filename = log_dir + categories[key]
-    file_dirs[key]=open(filename, 'w') 
+import OBDII_PID
+
+
+log_dir = '../data/'
+categories = {OBDII_PID.ENGINE_RPM: 'engineRPM.log', OBDII_PID.THROTTLE_POSITION: 'throttlePos.log'}
 
 def CAN_log(msg):
     pid = msg.data[OBDII_PID.PID_INDEX]
@@ -17,8 +17,10 @@ def CAN_log(msg):
     if pid in categories:
         data = OBDII_PID.OBDII_reader(msg)
         print(data)
-        f = file_dirs[pid]
-        f.write(str(data) + " " + str(time.time())+'\n')
+        filename = log_dir + categories[key]
+        f=open(filename, 'w') 
+        f.write(str(time.time()) + " " + str(data) +'\n')
+        f.close()
 
 def main():
     filters = [
@@ -36,8 +38,7 @@ def main():
                 time.sleep(0.1)
             time.sleep(1)
     except KeyboardInterrupt:
-        for key in file_dirs:
-            file_dirs[key].close()
+        print("CAN log stopped")
 
 main()
 
