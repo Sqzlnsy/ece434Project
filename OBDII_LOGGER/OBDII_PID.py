@@ -99,154 +99,126 @@ EMISSION_REQUIREMENT_TO_WHICH_VEHICLE_IS_DESIGNED = 0x5f
 PID_INDEX = 2
 
 def OBDII_reader(msg):
-    A=msg.data[3]
-    B=msg.data[4]
+    try:
+        A = msg.data[3]
+    except IndexError:
+        A = 'null'
+    try:
+        B = msg.data[4]
+    except IndexError:
+        B = 'null'
+    try:
+        C = msg.data[5]
+    except IndexError:
+        C = 'null'
+    try:
+        D = msg.data[6]
+    except IndexError:
+        D = 'null'
+
     pid=msg.data[PID_INDEX] 
     if pid > 0x5f:
         print("Unknown PID:"+pid)
         return   
-    else:
+    #else:
+    #   return ((A * 256.0 + B) / 4.0)
+    if msg.data[PID_INDEX] in [PID_SUPPORT_01_20, MONITOR_STATUS_SINCE_DTCS_CLEARED, 
+                               FREEZE_DTC, PID_SUPPORT_21_40, PID_SUPPORT_41_60, 
+                               MONITOR_STATUS_THIS_DRIVE_CYCLE]:
+        # return value can lose precision
+        return (A << 24) | (B << 16) | (C << 8) | D
+    elif msg.data[PID_INDEX] in [FUEL_SYSTEM_STATUS, RUN_TIME_SINCE_ENGINE_START, 
+                                 DISTANCE_TRAVELED_WITH_MIL_ON, DISTANCE_TRAVELED_SINCE_CODES_CLEARED, 
+                                 TIME_RUN_WITH_MIL_ON, TIME_SINCE_TROUBLE_CODES_CLEARED]:
+        return A * 256.0 + B
+    elif msg.data[PID_INDEX] in [CALCULATED_ENGINE_LOAD, THROTTLE_POSITION, COMMANDED_EGR, 
+                                 COMMANDED_EVAPORATIVE_PURGE, FUEL_TANK_LEVEL_INPUT, 
+                                 RELATIVE_THROTTLE_POSITION, ABSOLUTE_THROTTLE_POSITION_B, 
+                                 ABSOLUTE_THROTTLE_POSITION_C, ABSOLUTE_THROTTLE_POSITION_D, 
+                                 ABSOLUTE_THROTTLE_POSITION_E, ABSOLUTE_THROTTLE_POSITION_F, 
+                                 COMMANDED_THROTTLE_ACTUATOR, ETHANOL_FUEL_PERCENTAGE, 
+                                 RELATIVE_ACCELERATOR_PEDAL_POSITTION, HYBRID_BATTERY_PACK_REMAINING_LIFE]:
+        return A / 2.55
+    elif msg.data[PID_INDEX] in [COMMANDED_SECONDARY_AIR_STATUS, OBD_STANDARDS_THIS_VEHICLE_CONFORMS_TO, 
+                                 OXYGEN_SENSORS_PRESENT_IN_2_BANKS, OXYGEN_SENSORS_PRESENT_IN_4_BANKS, 
+                                 AUXILIARY_INPUT_STATUS, FUEL_TYPE, 
+                                 EMISSION_REQUIREMENT_TO_WHICH_VEHICLE_IS_DESIGNED]:
+        return A
+    elif msg.data[PID_INDEX] in [OXYGEN_SENSOR_1_SHORT_TERM_FUEL_TRIM, 
+                                OXYGEN_SENSOR_2_SHORT_TERM_FUEL_TRIM, 
+                                OXYGEN_SENSOR_3_SHORT_TERM_FUEL_TRIM, 
+                                OXYGEN_SENSOR_4_SHORT_TERM_FUEL_TRIM, 
+                                OXYGEN_SENSOR_5_SHORT_TERM_FUEL_TRIM, 
+                                OXYGEN_SENSOR_6_SHORT_TERM_FUEL_TRIM, 
+                                OXYGEN_SENSOR_7_SHORT_TERM_FUEL_TRIM, 
+                                OXYGEN_SENSOR_8_SHORT_TERM_FUEL_TRIM]:
+        return ((B / 1.28) - 100.0)
+    
+    elif msg.data[PID_INDEX] in [ENGINE_COOLANT_TEMPERATURE, 
+                                  AIR_INTAKE_TEMPERATURE, 
+                                  AMBIENT_AIR_TEMPERATURE, 
+                                  ENGINE_OIL_TEMPERATURE]:
+        return (A - 40.0)
+    
+    elif msg.data[PID_INDEX] in [SHORT_TERM_FUEL_TRIM_BANK_1, 
+                                  LONG_TERM_FUEL_TRIM_BANK_1, 
+                                  SHORT_TERM_FUEL_TRIM_BANK_2, 
+                                  LONG_TERM_FUEL_TRIM_BANK_2, 
+                                  EGR_ERROR]:
+        return ((A / 1.28) - 100.0)
+    
+    elif msg.data[PID_INDEX] == FUEL_PRESSURE:
+        return (A * 3.0)
+    
+    elif msg.data[PID_INDEX] in [INTAKE_MANIFOLD_ABSOLUTE_PRESSURE, 
+                                  VEHICLE_SPEED, 
+                                  WARM_UPS_SINCE_CODES_CLEARED, 
+                                  ABSOLULTE_BAROMETRIC_PRESSURE]:
+        return (A)
+    
+    elif msg.data[PID_INDEX] == ENGINE_RPM:
         return ((A * 256.0 + B) / 4.0)
-    # match msg.data[PID_INDEX]:
-    #     case PIDS_SUPPORT_01_20: // raw
-    #     case MONITOR_STATUS_SINCE_DTCS_CLEARED: // raw
-    #     case FREEZE_DTC: // raw
-    #     case PIDS_SUPPORT_21_40: // raw
-    #     case PIDS_SUPPORT_41_60: // raw
-    #     case MONITOR_STATUS_THIS_DRIVE_CYCLE: // raw
-    #     #return value can lose precision!
-    #         return ((uint32_t)A << 24 | (uint32_t)B << 16 | (uint32_t)C << 8 | (uint32_t)D)
-
-    #     case FUEL_SYSTEM_STATUS: // raw
-    #     case RUN_TIME_SINCE_ENGINE_START:
-    #     case DISTANCE_TRAVELED_WITH_MIL_ON:
-    #     case DISTANCE_TRAVELED_SINCE_CODES_CLEARED:
-    #     case TIME_RUN_WITH_MIL_ON:
-    #     case TIME_SINCE_TROUBLE_CODES_CLEARED:
-    #         return (A * 256.0 + B)
-
-    #     case CALCULATED_ENGINE_LOAD:
-    #     case THROTTLE_POSITION:
-    #     case COMMANDED_EGR:
-    #     case COMMANDED_EVAPORATIVE_PURGE:
-    #     case FUEL_TANK_LEVEL_INPUT:
-    #     case RELATIVE_THROTTLE_POSITION:
-    #     case ABSOLUTE_THROTTLE_POSITION_B:
-    #     case ABSOLUTE_THROTTLE_POSITION_C:
-    #     case ABSOLUTE_THROTTLE_POSITION_D:
-    #     case ABSOLUTE_THROTTLE_POSITION_E:
-    #     case ABSOLUTE_THROTTLE_POSITION_F:
-    #     case COMMANDED_THROTTLE_ACTUATOR:
-    #     case ETHANOL_FUEL_PERCENTAGE:
-    #     case RELATIVE_ACCELERATOR_PEDAL_POSITTION:
-    #     case HYBRID_BATTERY_PACK_REMAINING_LIFE:
-    #         return (A / 2.55)
-
-    #     case COMMANDED_SECONDARY_AIR_STATUS: // raw
-    #     case OBD_STANDARDS_THIS_VEHICLE_CONFORMS_TO: // raw
-    #     case OXYGEN_SENSORS_PRESENT_IN_2_BANKS: // raw
-    #     case OXYGEN_SENSORS_PRESENT_IN_4_BANKS: // raw
-    #     case AUXILIARY_INPUT_STATUS: // raw
-    #     case FUEL_TYPE: // raw
-    #     case EMISSION_REQUIREMENT_TO_WHICH_VEHICLE_IS_DESIGNED: // raw
-    #         return (A)
-
-    #     case OXYGEN_SENSOR_1_SHORT_TERM_FUEL_TRIM:
-    #     case OXYGEN_SENSOR_2_SHORT_TERM_FUEL_TRIM:
-    #     case OXYGEN_SENSOR_3_SHORT_TERM_FUEL_TRIM:
-    #     case OXYGEN_SENSOR_4_SHORT_TERM_FUEL_TRIM:
-    #     case OXYGEN_SENSOR_5_SHORT_TERM_FUEL_TRIM:
-    #     case OXYGEN_SENSOR_6_SHORT_TERM_FUEL_TRIM:
-    #     case OXYGEN_SENSOR_7_SHORT_TERM_FUEL_TRIM:
-    #     case OXYGEN_SENSOR_8_SHORT_TERM_FUEL_TRIM:
-    #         return ((B / 1.28) - 100.0)
-    #     break
-
-    #     case ENGINE_COOLANT_TEMPERATURE:
-    #     case AIR_INTAKE_TEMPERATURE:
-    #     case AMBIENT_AIR_TEMPERATURE:
-    #     case ENGINE_OIL_TEMPERATURE:
-    #         return (A - 40.0)
-
-    #     case SHORT_TERM_FUEL_TRIM_BANK_1:
-    #     case LONG_TERM_FUEL_TRIM_BANK_1:
-    #     case SHORT_TERM_FUEL_TRIM_BANK_2:
-    #     case LONG_TERM_FUEL_TRIM_BANK_2:
-    #     case EGR_ERROR:
-    #         return ((A / 1.28) - 100.0)
-
-    #     case FUEL_PRESSURE:
-    #         return (A * 3.0)
-
-    #     case INTAKE_MANIFOLD_ABSOLUTE_PRESSURE:
-    #     case VEHICLE_SPEED:
-    #     case WARM_UPS_SINCE_CODES_CLEARED:
-    #     case ABSOLULTE_BAROMETRIC_PRESSURE:
-    #         return (A)
-
-    #     case ENGINE_RPM:
-    #         return ((A * 256.0 + B) / 4.0)
-
-    #     case TIMING_ADVANCE:
-    #         return ((A / 2.0) - 64.0)
-
-    #     case MAF_AIR_FLOW_RATE:
-    #         return ((A * 256.0 + B) / 100.0)
-
-    #     case FUEL_RAIL_PRESSURE:
-    #         return ((A * 256.0 + B) * 0.079)
-
-    #     case FUEL_RAIL_GAUGE_PRESSURE:
-    #     case FUEL_RAIL_ABSOLUTE_PRESSURE:
-    #         return ((A * 256.0 + B) * 10.0)
-
-    #     case OXYGEN_SENSOR_1_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case OXYGEN_SENSOR_2_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case OXYGEN_SENSOR_3_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case OXYGEN_SENSOR_4_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case OXYGEN_SENSOR_5_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case OXYGEN_SENSOR_6_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case OXYGEN_SENSOR_7_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case OXYGEN_SENSOR_8_FUEL_AIR_EQUIVALENCE_RATIO:
-    #     case 0x34:
-    #     case 0x35:
-    #     case 0x36:
-    #     case 0x37:
-    #     case 0x38:
-    #     case 0x39:
-    #     case 0x3a:
-    #     case 0x3b:
-    #         return (((A * 256.0 + B) * 2.0) / 65536.0)
-
-    #     case EVAP_SYSTEM_VAPOR_PRESSURE:
-    #         return (((int16_t)(A * 256.0 + B)) / 4.0)
-
-    #     case CATALYST_TEMPERATURE_BANK_1_SENSOR_1:
-    #     case CATALYST_TEMPERATURE_BANK_2_SENSOR_1:
-    #     case CATALYST_TEMPERATURE_BANK_1_SENSOR_2:
-    #     case CATALYST_TEMPERATURE_BANK_2_SENSOR_2:
-    #         return (((A * 256.0 + B) / 10.0) - 40.0)
-
-    #     case CONTROL_MODULE_VOLTAGE:
-    #         return ((A * 256.0 + B) / 1000.0)
-
-    #     case ABSOLUTE_LOAD_VALUE:
-    #         return ((A * 256.0 + B) / 2.55)
-
-    #     case FUEL_AIR_COMMANDED_EQUIVALENCE_RATE:
-    #         return (2.0 * (A * 256.0 + B) / 65536.0)
-
-    #     case ABSOLUTE_EVAP_SYSTEM_VAPOR_PRESSURE:
-    #         return ((A * 256.0 + B) / 200.0)
-
-    #     case 0x54:
-    #         return ((A * 256.0 + B) - 32767.0)
-
-    #     case FUEL_INJECTION_TIMING:
-    #         return (((A * 256.0 + B) / 128.0) - 210.0)
-
-    #     case ENGINE_FUEL_RATE:
-    #         return ((A * 256.0 + B) / 20.0)
-
-    #     case _:
-    #         return ((uint32_t)A << 24 | (uint32_t)B << 16 | (uint32_t)C << 8 | (uint32_t)D)
+    
+    elif msg.data[PID_INDEX] == TIMING_ADVANCE:
+        return ((A / 2.0) - 64.0)
+    
+    elif msg.data[PID_INDEX] == MAF_AIR_FLOW_RATE:
+        return ((A * 256.0 + B) / 100.0)
+    
+    elif msg.data[PID_INDEX] == FUEL_RAIL_PRESSURE:
+        return ((A * 256.0 + B) * 0.079)
+    elif msg.data[PID_INDEX] in [FUEL_RAIL_GAUGE_PRESSURE, FUEL_RAIL_ABSOLUTE_PRESSURE]:
+        return ((A * 256.0 + B) * 10.0)
+    elif msg.data[PID_INDEX] in [OXYGEN_SENSOR_1_FUEL_AIR_EQUIVALENCE_RATIO, 
+                                OXYGEN_SENSOR_2_FUEL_AIR_EQUIVALENCE_RATIO,
+                                OXYGEN_SENSOR_3_FUEL_AIR_EQUIVALENCE_RATIO,
+                                OXYGEN_SENSOR_4_FUEL_AIR_EQUIVALENCE_RATIO,
+                                OXYGEN_SENSOR_5_FUEL_AIR_EQUIVALENCE_RATIO,
+                                OXYGEN_SENSOR_6_FUEL_AIR_EQUIVALENCE_RATIO,
+                                OXYGEN_SENSOR_7_FUEL_AIR_EQUIVALENCE_RATIO,
+                                OXYGEN_SENSOR_8_FUEL_AIR_EQUIVALENCE_RATIO,
+                                0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b]:
+        return (((A * 256.0 + B) * 2.0) / 65536.0)
+    elif msg.data[PID_INDEX] == EVAP_SYSTEM_VAPOR_PRESSURE:
+        return (((int16_t)(A * 256.0 + B)) / 4.0)
+    elif msg.data[PID_INDEX] in [CATALYST_TEMPERATURE_BANK_1_SENSOR_1, 
+                                CATALYST_TEMPERATURE_BANK_2_SENSOR_1,
+                                CATALYST_TEMPERATURE_BANK_1_SENSOR_2,
+                                CATALYST_TEMPERATURE_BANK_2_SENSOR_2]:
+        return (((A * 256.0 + B) / 10.0) - 40.0)
+    elif msg.data[PID_INDEX] == CONTROL_MODULE_VOLTAGE:
+        return ((A * 256.0 + B) / 1000.0)
+    elif msg.data[PID_INDEX] == ABSOLUTE_LOAD_VALUE:
+        return ((A * 256.0 + B) / 2.55)
+    elif msg.data[PID_INDEX] == FUEL_AIR_COMMANDED_EQUIVALENCE_RATE:
+        return (2.0 * (A * 256.0 + B) / 65536.0)
+    elif msg.data[PID_INDEX] == ABSOLUTE_EVAP_SYSTEM_VAPOR_PRESSURE:
+        return ((A * 256.0 + B) / 200.0)
+    elif msg.data[PID_INDEX] == 0x54:
+        return ((A * 256.0 + B) - 32767.0)
+    elif msg.data[PID_INDEX] == FUEL_INJECTION_TIMING:
+        return (((A * 256.0 + B) / 128.0) - 210.0)
+    elif msg.data[PID_INDEX] == ENGINE_FUEL_RATE:
+            return ((A * 256.0 + B) / 20.0)
+    else:
+        return (A << 24 | B << 16 | C << 8 | D)
