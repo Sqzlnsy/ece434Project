@@ -224,7 +224,6 @@ void* write_gps_file(void* ignor) {
             data_gps[0] = latitude;
             data_gps[1] = longitude;
             data_gps[2] = altitude;
-            data_gps[3] = track;
             data_gps[4] = climb;
             data_gps[5] = dx_speed;
             data_gps[6] = nb_speed;
