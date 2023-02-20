@@ -6,13 +6,8 @@
  * Jason Su
  */
 
-<<<<<<< HEAD
-/var _url = "http://192.168.7.2:8082";
-//var _url = "http://127.0.0.1:8082";
-=======
-//var _url = "http://192.168.7.2:8082";
-var _url = "http://127.0.0.1:8082";
->>>>>>> d748685487f6dd3b1a23cbd032c265d416307e62
+var _url = "http://192.168.7.2:8082";
+// var _url = "http://127.0.0.1:8082";
 var rhit = rhit || {};
 
 rhit.fbPlotList = null;
@@ -81,7 +76,7 @@ rhit.dataPlot = class{
     }
 
     refresh(){
-        fetch(_url+'/data/'+this.name + '=' + this.freq)
+        fetch(_url+'/data/'+this.url + '=' + this.freq)
         .then(response => response.json())
         .then(data => {
             let xVals=data.ts;

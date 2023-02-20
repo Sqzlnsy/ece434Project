@@ -8,13 +8,19 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "./dependencies/vectorBuffer.h"
+#include "../EKF/vectorBuffer.h"
 #include "EKF_Test.h"
+
 // #define SIMULATE
 #define FREQUENCY_GYRO 100
 #define STATE_BUFFER_SIZE 200
 #define FREQUENCY 10
 #define LOGGING
+#define GYRO_PATH "data/gyroL.log"
+#define GPS_PATH "data/gpsL.log"
+#define POS_PATH "data/pos.log"
+#define VEL_PATH "data/vel.log"
+
 
 // vector buffers
 // Queue *accel = createQueue(IMU_BUFFER_SIZE);
@@ -110,7 +116,7 @@ void gyro_read(double accel_scale,double angle_scale){
 }
 
 void *write_gyro(void* ignore){
-        FILE *fo = fopen("./log/gyroL.log", "a+");
+        FILE *fo = fopen(GYRO_PATH, "a+");
     // Create the timer
         int i =0;
     // Set the gpsd daemon to streaming mode
@@ -145,9 +151,9 @@ void *write_gyro(void* ignore){
 }
 
 void* clear_file(void* ignore){
-    FILE *fo = fopen("./log/gpsL.log", "w");
-    FILE *fg = fopen("./log/gyroL.log", "w");
-    FILE *fp = fopen("./log/position.txt", "w");
+    FILE *fo = fopen(GPS_PATH, "w");
+    FILE *fg = fopen(GYRO_PATH, "w");
+    FILE *fp = fopen(POS_PATH, "w");
     fprintf(fo, "");
     fprintf(fg, "");
     fprintf(fp, "");
@@ -161,7 +167,7 @@ void* write_gps_file(void* ignor) {
     int i =0;
     #ifdef LOGGING
     // Set the gpsd daemon to streaming mode
-    FILE *fo = fopen("./log/gpsL.log", "a+");
+    FILE *fo = fopen(GPS_PATH, "a+");
 
     int fde = fileno(fo);
     fcntl(fde, F_SETLKW, &lock);
