@@ -59,10 +59,10 @@ def getData(type, num):
         temp = line.split(' ')
         time_Stamp.append(temp[0])
         
-        if (file_name != "vel.log"):
+        if (file_name != "gpsL.log"):
             data.append(temp[col])
         else:
-            data.append(math.sqrt(float(temp[1])**2+float(temp[2])**2+float(temp[3])**2))
+            data.append(math.sqrt(float(temp[4])**2+float(temp[5])**2+float(temp[6])**2))
     print(data)
     d = {'param': data, 'ts': time_Stamp}
     return jsonify(d)
