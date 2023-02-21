@@ -97,7 +97,7 @@ void *EKF_Test(void *ctrl)
                 gpsv[0] = v.x;
                 gpsv[1] = v.y;
                 gpsv[2] = v.z;
-                // printf("%lf | %lf | %lf \n", lla[0], lla[1], lla[2]);
+                //printf("%lf | %lf | %lf \n", gpsv[0], gpsv[1], gpsv[2]);
                 obj.updateGPS(lla, gpsv);   // gps velocity
                 EKF_counter++;
                 EKF_counter%= uint(FREQUENCY_GYRO/FREQUENCY+1);
@@ -141,8 +141,8 @@ void *EKF_Test(void *ctrl)
         }
         if(writectl){
             //printQueue(position);
-            fp = fopen("pos.log", "a+");
-            fv = fopen("vel.log", "a+");
+            fp = fopen("data/pos.log", "a+");
+            fv = fopen("data/vel.log", "a+");
             while(!isEmpty(position) && !isEmpty(velocity)){
                 vector_t v = dequeue(position);
                 fprintf(fp, "%lf %lf %lf %lf\n", v.ts, v.x, v.y, v.z);
