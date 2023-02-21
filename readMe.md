@@ -6,6 +6,7 @@ Note: The actual outcome can be seen in the E-Linux page.
 Use extended Kalman filter to integrate GPS and IMU data to achieve a decimeter level accuracy for the position and velocity of a vehicle. Combine with data logged from the CAN bus to build a server as a platform for implementing some apps, such as lap time, accel/brake time for analysis purpose. 
 
 ## Overall Structure: ##
+![image](https://user-images.githubusercontent.com/81930315/220403909-ae707fa0-c075-4ad2-bf0b-988aad5ed83e.png)
 
 
 
@@ -26,8 +27,7 @@ We are almost able to get all the data that OBD2 Interface provides. How OBD2 wo
 We have both front end task (server.py) and backend task (futionT), front end uses canvas to plot the data which came from back end, it drags multiple lines from the datalog file (see data folder) and plot them all at a specific frequency (see server.sh and js file in the templates)
 
 The back end is the one that consumes the CPU Usage the most. Since this device is used to record the data in the vehicle, we want to ensure that it keeps updating at a certain frequency. The maximum frequency that IMU can sample is 160 Hz, but we noticed that it takes too much CPU usage (>=92%), we lowered this frequency to 100Hz. Another reason why we lowered the frequency is that for our non real time kernels, it is difficult to make the sampling rate exactly as expected. See the figure below:
-
-## figure ## 
+![image](https://user-images.githubusercontent.com/81930315/220404005-1e1b973b-3004-4a20-81bf-ac6b3d56bf07.png)
 
 This figure basically measures the time gap between each sample, it is noticeable that most of them are at 0.01s, which is expected since we have 100 Hz frequency. If we change the frequency to 160, this bell will be spread out, which means that the sampling rate becomes more inaccurate.
 
@@ -38,9 +38,11 @@ This figure basically measures the time gap between each sample, it is noticeabl
 
 Front End Task: 
 We used canvas to plot the data in the localhost, the port is at 8082 so the website that you need to go to is http://192.168.7.2:8082/ after the server.py and fusionT both starts. In the website, multiple plots can be added to the page upon click on the options e.g. AccelerationX, Acceleration Y, RMP etc.
+![image](https://user-images.githubusercontent.com/81930315/220404147-7ee0bc91-76f8-466e-9311-b54093f84855.png)
 
 Back End Task:
 For the back end, as mentioned above, all we did was grab the raw data first, scale it to the reasonable data, and then put them into a log file using a specific format so that python can process it easily. Time stamp is included since we want the absolute time instead of relative time to make it more accurate.
+![image](https://user-images.githubusercontent.com/81930315/220404204-40df5e10-fd7f-45ba-83f9-1d37e8d3060c.png)
 
 Then, the Kalman filter will grab all those raw data and process them and put all those data into a result file. That's the file the server will be accessing to. The server will taken care of the string conversion and formatting issues.
 
