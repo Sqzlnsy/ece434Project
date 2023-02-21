@@ -53,7 +53,7 @@ rhit.dataPlot = class{
         //console.log(xVals);
         let maxV = xVals[0];
         let count = 0;
-        for(let i = 0; i < xVals.length; i++){
+        for(let i = xVals.length-1; i >=0 ; i--){
         //for(let i = 0; i < xVals.length; i++){
             if(xVals[i] > this.prevTime){ // need to be changed
                 this.dps.push({

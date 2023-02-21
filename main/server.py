@@ -32,8 +32,8 @@ k = 10
 
 @app.route("/time", methods=['GET'])
 def getTime():
-    data = {'time': 1676076002}
-    #data = {'time': int(time.time())}
+    #data = {'time': 1676076002}
+    data = {'time': int(time.time())}
     return jsonify(data)
 
 @app.route("/data/<type>=<num>", methods=['GET'])
@@ -58,11 +58,12 @@ def getData(type, num):
     for line in lines:
         temp = line.split(' ')
         time_Stamp.append(temp[0])
+        
         if (file_name != "vel.log"):
             data.append(temp[col])
         else:
-            data.append(math.sqrt(temp[0]**2+temp[1]**2+temp[2]**2))
-    #print(data)
+            data.append(math.sqrt(float(temp[1])**2+float(temp[2])**2+float(temp[3])**2))
+    print(data)
     d = {'param': data, 'ts': time_Stamp}
     return jsonify(d)
 

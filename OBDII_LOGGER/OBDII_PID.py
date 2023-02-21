@@ -1,4 +1,4 @@
-PIDS_SUPPORT_01_20                                = 0x00
+PID_SUPPORT_01_20                                = 0x00
 MONITOR_STATUS_SINCE_DTCS_CLEARED                 = 0x01
 FREEZE_DTC                                        = 0x02
 FUEL_SYSTEM_STATUS                                = 0x03
@@ -30,7 +30,7 @@ OBD_STANDARDS_THIS_VEHICLE_CONFORMS_TO            = 0x1c
 OXYGEN_SENSORS_PRESENT_IN_4_BANKS                 = 0x1d
 AUXILIARY_INPUT_STATUS                            = 0x1e
 RUN_TIME_SINCE_ENGINE_START                       = 0x1f
-PIDS_SUPPORT_21_40                                = 0x20
+PID_SUPPORT_21_40                                = 0x20
 DISTANCE_TRAVELED_WITH_MIL_ON                     = 0x21
 FUEL_RAIL_PRESSURE                                = 0x22
 FUEL_RAIL_GAUGE_PRESSURE                          = 0x23
@@ -63,7 +63,7 @@ CATALYST_TEMPERATURE_BANK_2_SENSOR_1              = 0x3d
 CATALYST_TEMPERATURE_BANK_1_SENSOR_2              = 0x3e
 CATALYST_TEMPERATURE_BANK_2_SENSOR_2              = 0x3f
 
-PIDS_SUPPORT_41_60                                = 0x40
+PID_SUPPORT_41_60                                = 0x40
 MONITOR_STATUS_THIS_DRIVE_CYCLE                   = 0x41
 CONTROL_MODULE_VOLTAGE                            = 0x42
 ABSOLUTE_LOAD_VALUE                               = 0x43

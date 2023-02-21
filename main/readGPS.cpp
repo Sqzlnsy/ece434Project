@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <math.h>
+//#include <cmath.h>
 #include "../EKF/vectorBuffer.h"
 #include "EKF_Test.h"
 
@@ -154,12 +156,15 @@ void* clear_file(void* ignore){
     FILE *fo = fopen(GPS_PATH, "w");
     FILE *fg = fopen(GYRO_PATH, "w");
     FILE *fp = fopen(POS_PATH, "w");
+    FILE *fv = fopen(VEL_PATH, "w");
     fprintf(fo, "");
     fprintf(fg, "");
     fprintf(fp, "");
+    fprintf(fv, "");
     fclose(fo);
     fclose(fg);
     fclose(fp);
+    fclose(fv);
     return 0;
 }
 void* write_gps_file(void* ignor) {
@@ -202,13 +207,15 @@ void* write_gps_file(void* ignor) {
             latitude =latitude+ gps_d.fix.latitude;
             longitude =longitude+ gps_d.fix.longitude;
             altitude =altitude+ gps_d.fix.altHAE;
-            track = track+gps_d.fix.track;//angle
+            track = track+gps_d.fix.track * M_PI/180.0;//angle
             if(!(track>=-360) || !(track<=360)){
                 track = 0;
             }
             double climb = gps_d.fix.climb;
-            double dx_speed = gps_d.fix.NED.velE;
-            double nb_speed = gps_d.fix.NED.velN;
+            // double dx_speed = gps_d.fix.NED.velE;
+            // double nb_speed = gps_d.fix.NED.velN;
+            double dx_speed = gps_d.fix.speed*cos(track);
+            double nb_speed = gps_d.fix.speed*sin(track);
             
             #ifdef SIMULATE
             fscanf(fpl, "%lf", &latitude);
@@ -251,15 +258,6 @@ void* read_data(void *ignore){
     lock.l_whence = SEEK_SET;
     lock.l_start = 0;
     lock.l_len = 0;
-        // Connect to the gpsd daemon
-    int gps_fd = gps_open("localhost", "2947", &gps_d);
-    pthread_t new_thread,new_thread2;
-    if (gps_fd == -1) {
-        // Error connecting to gpsd
-        perror("Error connecting to gpsd\n");
-        return 0;
-    }
-    gps_stream(&gps_d, WATCH_ENABLE | WATCH_JSON, NULL);
     printf("start sleep...\n");
     sleep(2);
     FILE *scale_Accel = fopen("/sys/class/i2c-adapter/i2c-2/2-0068/iio:device1/in_accel_scale","r");
@@ -329,14 +327,17 @@ int main(){
 
     while(1){
         if (gps_read(&gps_d, buffer, buffer_size) == -1) {
-        // Error reading GPS data
-        perror("Error reading GPS data\n");
-        return 0;
-    }
-        if(gps_d.fix.latitude < 90 &&  gps_d.fix.latitude > -90){
+            // Error reading GPS data
+            perror("Error reading GPS data\n");
+            return 0;
+        }
+        //printf("latitude %d\n", gps_d.fix.latitude < 90 );
+        if((gps_d.fix.latitude < 90) &&  (gps_d.fix.latitude > -90)){
             break;
         }   
+        usleep(100000);
     }
+
     EKF_ctr[0] = 1;
     EKF_ctr[1] = 1;
     pthread_create(&thread1,0,read_data,0);
