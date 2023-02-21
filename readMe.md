@@ -14,7 +14,7 @@ Use extended Kalman filter to integrate GPS and IMU data to achieve a decimeter 
 At the beginning of this project, after we had drawn out the basic design of this project. We immediately designed a PCB board to mount on the beagle board to achieve portability. Since this device is designed to be mounted on the vehicle, we want the wiring to be as simple as possible.
 
 ## Installation Instructions ##
-See E-Linux page for specifics
+See E-Linux page for specifics  https://elinux.org/ECE434_Project_-_Vehicle_Telemetry
 Some of the instructions are put in the setup.sh in the top folder (ece434Project), but since it is hard to do device three installation and different kernel may result in different configurations, instead of providing direct instructions, we will just explain how we install everything in our kernel. Feel free to test out.
 
 ## User Instructions ##
