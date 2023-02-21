@@ -37,7 +37,7 @@ This figure basically measures the time gap between each sample, it is noticeabl
 3. For CAN, we used python and a can transceiver to communicate with the vehicle. It is able to get the data after sending a request to the vehicle. See CAN_LOG.py
 
 Front End Task: 
-We used canvas to plot the data in the localhost, the port is at 8082 so the website that you need to go to is http://192.168.7.2:8082/ after the server.py and fusionT both starts. In the website, multiple plots can be added to the page upon click on the options e.g. AccelerationX, Acceleration Y, RMP etc.
+We used canvas to plot the data in the localhost, the port is at 8082 so the website that you need to go to is http://192.168.7.2:8082/ after the server.py and fusionT both starts. In the website, multiple plots can be added to the page upon click on the options e.g. AccelerationX, Acceleration Y, RPM etc.
 ![image](https://user-images.githubusercontent.com/81930315/220404147-7ee0bc91-76f8-466e-9311-b54093f84855.png)
 
 Back End Task:
